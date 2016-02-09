@@ -14,12 +14,18 @@ import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.imageio.ImageIO;
 
 import exceptions.ServerException;
 import http.FileType;
+import http.HTTPConstants;
 import http.HTTPResponseCode;
+import http.HTTPUtils;
+import http.HTTPUtils.HttpParsedMessageObject;
 
 
 
@@ -28,8 +34,6 @@ public class Utils {
 	//Constants Symbols/Tokens
 	public static final String CRLF = "\r\n";
 	public static final String FILE_SEPERATOR = File.separator;
-	
-
 	
 	//HTTP protocol constants
 	public static final String HTTP_TYPE_1_0 = "1.0";
@@ -47,7 +51,6 @@ public class Utils {
 	public static final String HTTP_CHUNKED_KEY = "chunked";
 	public static final String HTTP_CHUNKED_KEY_YES = "yes";
 
-	//chunked extension for handeling sending response in chunks
 	public static final int CHUNKED_SIZE = 1024;
 	
 	
@@ -107,80 +110,63 @@ public class Utils {
 		}
 	} 
 	
-	public static String readHeadersFromInputStream(InputStream in) throws ServerException {
+	public static HTTPUtils.HttpParsedMessageObject readHttpMessageFromInputStream(InputStream in) throws ServerException {
 		
 		BufferedReader inputStream = new BufferedReader(new InputStreamReader(in));
-		StringBuilder builder = new StringBuilder();
+		String firstLine = null;
+		HashMap<String, String> headers = new HashMap<>();
+		byte[] body = null;
+		boolean isChunked = false;
 
 		try {
-
-			String line  = inputStream.readLine();
+			
+			//First line
+			firstLine = inputStream.readLine();
+			
+			//Headers
+			Pattern pattern = Pattern.compile(HTTPConstants.REQUEST_HEADERLINE_PATTERN_STRING);
+			Matcher matcher = null;
+			String line = inputStream.readLine();
+			
 			while(line != null && !line.equals("") ) {
-				builder.append(line + CRLF);
-
+				matcher = pattern.matcher(line);
+				if (matcher.matches()) {
+					headers.put(matcher.group(1).toLowerCase().trim(), matcher.group(2).toLowerCase().trim());
+					isChunked |= matcher.group(1).trim().equals(HTTPConstants.HTTP_TRANSFER_ENCODING) 
+							&& matcher.group(2).equals(HTTP_CHUNKED_KEY);
+				} else {
+					throw new ServerException(HTTPResponseCode.BAD_REQUEST);
+				}
+				
 				line = inputStream.readLine();
-				
-			}
-				
-			builder.append(CRLF);
-
-			
-		} catch (IOException e) {
-			throw new ServerException(HTTPResponseCode.INTERNAL_ERROR);
-		} 
-		
-		return builder.toString();
-	}
-	
-	public static String readChunkedDataFromInputStream(InputStream in, int timeout) throws ServerException {
-		
-		BufferedReader inputStream = new BufferedReader(new InputStreamReader(in));
-		StringBuilder builder = new StringBuilder();
-		
-		try {
-
-			String lengthline  = inputStream.readLine();
-			System.out.println("Length line is " + lengthline);
-			int length = Integer.parseInt(lengthline, 16);
-			
-			while (length != 0) {
-				
-				byte[] data = new byte[length];
-				in.read(data);
-				builder.append(data);
-				lengthline  = inputStream.readLine();
-				length = Integer.parseInt(lengthline, 16);
 			}
 			
-			
-			builder.append(CRLF);
-			
-		} catch (IOException e) {
-			throw new ServerException(HTTPResponseCode.INTERNAL_ERROR);
-		} catch (NumberFormatException e) {
-			throw new ServerException(HTTPResponseCode.BAD_REQUEST);
-		} 
-		
-		return builder.toString();
-	}
-	
-	public static String readDataFromInputStream(InputStream in , int contentLength) throws ServerException {
-		try {
+			//Read chunked body
 			StringBuilder builder = new StringBuilder();
-			BufferedReader inputStream = new BufferedReader(new InputStreamReader(in));
-			
-			while (inputStream.ready()) {
-				builder.append((char) inputStream.read());
+			if (isChunked) {
+				
 			}
 			
-			return builder.toString();
-					
+			int contentLength = 0;
+			if (headers.containsKey(HTTP_CONTENT_LENGTH_KEY)) {
+				contentLength = Integer.parseInt(headers.get(HTTPConstants.HTTP_CONTENT_LENGTH_KEY));
+			}
+			
+			int numBytes = 0;
+			while (numBytes < contentLength) {
+				builder.append((char) inputStream.read());
+				numBytes++;
+			}
+			
+			body = new byte[numBytes];
+			System.arraycopy(builder.toString().getBytes(), 0, body, 0, numBytes);
+
+			
 		} catch (IOException e) {
-			throw new ServerException(HTTPResponseCode.BAD_REQUEST);
-		}
+			throw new ServerException(HTTPResponseCode.INTERNAL_ERROR);
+		} 
+		return new HttpParsedMessageObject(firstLine, headers, body);
 	}
-	
-	
 	
 	public static void writeOutputStream(OutputStream out, String content) {
 		BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out));

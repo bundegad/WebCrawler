@@ -10,61 +10,16 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import exceptions.ServerException;
-import io.Utils;
 
 public class HTTPUtils {
 
 	public static HTTPRequest parseRawHttpRequest(InputStream in) throws ServerException {
-		
-		String httpheaders = Utils.readHeadersFromInputStream(in);
-		HTTPRequest request = parseRawHttpRequest(httpheaders);
-		String body = null;
-		boolean validateBody = false;
-		
-		String contentLengthString = request.headers.get(HTTPConstants.HTTP_CONTENT_LENGTH_KEY);
-		if (contentLengthString != null) {
-			
-			int contentLength = Integer.parseInt(contentLengthString);
-			body = io.Utils.readDataFromInputStream
-					(in, contentLength);
-			validateBody = true;
-			
-		} else if (request.headers.containsKey(HTTPConstants.HTTP_TRANSFER_ENCODING)) {	
-			
-			String transferEncoding = request.headers.get(HTTPConstants.HTTP_TRANSFER_ENCODING);
-			if (!transferEncoding.equals(HTTPConstants.HTTP_CHUNKED_KEY)) {
-				throw new ServerException(HTTPResponseCode.BAD_REQUEST);
-			}
-			
-			body = io.Utils.readChunkedDataFromInputStream(in, HTTPConstants.SOCKET_DEFAULT_TIMEOUT_MS);
-			
-		}
-		
-		request.body = body;
-		if (validateBody && !HTTPUtils.validateBody(request)) {
-			throw new ServerException(HTTPResponseCode.BAD_REQUEST);
-		}
-		
-		return request;
-	}
-	
-	public static HTTPRequest parseRawHttpRequest(String rawRequest) throws ServerException {
 
-		//Check null or empty
-		if (rawRequest == null || rawRequest.isEmpty()) {
-			return null;
-		}
-
-		//Parse lines
-		String[] requestLines = rawRequest.split(HTTPConstants.CRLF);
-
-		//clean first line
-		String firstLine = removeSpaces(requestLines[0]);
-
+		HttpParsedMessageObject httpMessageObject = io.Utils.readHttpMessageFromInputStream(in);
 
 		//Parse first line
 		Pattern firstLinePattern = Pattern.compile(HTTPConstants.REQUEST_FIRSTLINE_PATTEN_STRING);
-		Matcher matcher = firstLinePattern.matcher(firstLine);
+		Matcher matcher = firstLinePattern.matcher(removeSpaces(httpMessageObject.firstLine));
 
 
 		//Check if valid first line
@@ -88,69 +43,28 @@ public class HTTPUtils {
 			throw new ServerException(HTTPResponseCode.BAD_REQUEST);
 		}
 
-
-		//Parse headers
-		int endHeadersIndex = getEndHeadersIndex(requestLines);
-		HashMap<String, String> headers = parseRawHeaders(requestLines, endHeadersIndex);
-
-
 		//Construct request
-		HTTPRequest request = new HTTPRequest(rawRequest, path, type);
+		HTTPRequest request = new HTTPRequest("", path, type);
 		request.version = version;
-		request.setHeaders(headers);
+		request.setHeaders(httpMessageObject.headers);
 
-		
 
 		//Parse url params in case its get or head request.
 		if (request.type == HTTPRequestType.GET || request.type == HTTPRequestType.HEAD) {
 			parseURLParams(request);
 		}
 
+		request.body = new String(httpMessageObject.body);
+		
 		return request;
 	}
-	
-	public static HTTPResponse parseRawHttpResponse(InputStream in, boolean shouldReadBody) throws ServerException {
-		
-		String httpheaders = Utils.readHeadersFromInputStream(in);
-		HTTPResponse response = parseRawHttpResponse(httpheaders);
-		
-		if (!shouldReadBody) {
-			return response;
-		}
-		
-		boolean validateBody = false;
-		String body = null;
-		
-		if (response.isChunked()) {
-			body = io.Utils.readChunkedDataFromInputStream(in, HTTPConstants.SOCKET_DEFAULT_TIMEOUT_MS);
-		} 
-		else {
-			
-			int contentLength = Integer.parseInt(response.getContentLength());
-			body = io.Utils.readDataFromInputStream(in, contentLength);
-			validateBody = true;
-		}
-		
-		response.fileContent = body.getBytes();
-//		if (validateBody && !HTTPUtils.validateBody(response)) {
-//			throw new ServerException(HTTPResponseCode.BAD_REQUEST);
-//		}
-		
-		return response;
-	}
-	
 
-	public static HTTPResponse parseRawHttpResponse(String rawResponse) throws ServerException  {
-		//Check null or empty
-		if (rawResponse == null || rawResponse.isEmpty()) {
-			return null;
-		}
+	public static HTTPResponse parseRawHttpResponse(InputStream in) throws ServerException {
 
-		//Parse lines
-		String[] responseLines = rawResponse.split(HTTPConstants.CRLF);
-
+		HttpParsedMessageObject httpMessageObject = io.Utils.readHttpMessageFromInputStream(in);
+		
 		//clean first line
-		String firstLine = removeSpaces(responseLines[0]);
+		String firstLine = removeSpaces(httpMessageObject.firstLine);
 
 
 		//Parse first line
@@ -169,23 +83,22 @@ public class HTTPUtils {
 		}
 
 		HTTPResponse response = new HTTPResponse(code, version); 
-
-		//Parse headers
-		int endHeadersIndex = getEndHeadersIndex(responseLines);
-		HashMap<String, String> headers = parseRawHeaders(responseLines, endHeadersIndex);
-		response.addHeaders(headers);
-
+		response.addHeaders(httpMessageObject.headers);
+		
+		response.fileContent = httpMessageObject.body;
+		
+		
 		return response;
 	}
 
 	public static URLParsedObject parsedRawURL(String url) throws URISyntaxException  {
-		
+
 		try {
 			url = URLDecoder.decode(url, "UTF-8");
 		} catch (UnsupportedEncodingException e) {
-			
+
 		}
-		
+
 		if (!url.startsWith("http://") && !url.startsWith("https://")) {
 			url = String.format("http://%s", url);
 		}
@@ -206,37 +119,21 @@ public class HTTPUtils {
 			path = "/";
 			return new URLParsedObject(host, path, port);
 		} 
-		
-		
+
+
 		path = uri.getRawPath();
 		path = path == null || path.length() == 0 ? "/" : path;
 		String query = uri.getRawQuery();
 		if (query != null && query.length() > 0) {
 			path = String.format("%s?%s", path, query);
 		}
-		
+
 		host = host.endsWith("/") ? host.substring(0, host.length() - 1) : host;
 		return new URLParsedObject(host, path, port);
 	}
 
-	private static HashMap<String, String> parseRawHeaders(String[] requestLines, int endHeadersIndex) throws ServerException {
-
-		HashMap<String, String> headers = new HashMap<>();
-		Pattern headerlinePattern = Pattern.compile(HTTPConstants.REQUEST_HEADERLINE_PATTERN_STRING);
-
-
-		for (int i = 1; i < endHeadersIndex; i++) {
-
-			Matcher matcher = headerlinePattern.matcher(requestLines[i]);
-			if (!matcher.matches()) {
-				throw new ServerException(HTTPResponseCode.BAD_REQUEST); 
-			} 
-
-			headers.put(matcher.group(1).toLowerCase().trim(),
-					matcher.group(2).trim());
-		}
-
-		return headers;
+	public static boolean equalDomains(String domain1, String domain2) {
+		return domain1.contains(domain2) || domain2.contains(domain1);
 	}
 
 	private static void parseURLParams(HTTPRequest request) throws ServerException {
@@ -252,43 +149,6 @@ public class HTTPUtils {
 			request.setParams(parseRawParams(pathParts[1]));
 		}
 
-	}
-
-	public static boolean validateBody(HTTPRequest request) {
-
-		String contentLength = request.headers.get(HTTPConstants.HTTP_CONTENT_LENGTH_KEY);
-		if (contentLength == null) {
-			contentLength = "0";
-		}
-
-		try {
-			if (Integer.parseInt(contentLength) != request.body.length()) {
-				return false;
-			}
-		} catch (NumberFormatException e) {
-			e.printStackTrace();
-			return false;
-		}
-
-		return true;
-	}
-	
-	public static boolean validateBody(HTTPResponse response) {
-		
-		String contentLength = response.getHeader(HTTPConstants.HTTP_CONTENT_LENGTH_KEY);
-		if (contentLength == null) {
-			contentLength = "0";
-		}
-
-		try {
-			if (Integer.parseInt(contentLength) != response.fileContent.length) {
-				return false;
-			}
-		} catch (NumberFormatException e) {
-			return false;
-		}
-
-		return true;
 	}
 
 	private static HashMap<String, String> parseRawParams(String rawParams) throws ServerException {
@@ -313,22 +173,9 @@ public class HTTPUtils {
 		return params;
 	}
 
-	private static int getEndHeadersIndex(String[] requestLines) {
-
-		int i = 1;
-		while (i < requestLines.length && !requestLines[i].isEmpty()) {
-			i++;
-		}
-
-		return i;
-	}
-
-	//Done
 	private static String removeSpaces(String str) {
 		return str.replaceAll("\\s*", "");
 	}
-
-
 
 	public static class URLParsedObject {
 
@@ -340,6 +187,18 @@ public class HTTPUtils {
 			this.host = host;
 			this.path = path;
 			this.port = port;
+		}
+	}
+
+	public static class HttpParsedMessageObject {
+		public final String firstLine;
+		public final HashMap<String, String> headers;
+		public final byte[] body;
+
+		public HttpParsedMessageObject(String firstLine, HashMap<String, String> headers, byte[] body) {
+			this.firstLine = firstLine;
+			this.headers = headers;
+			this.body = body;
 		}
 	}
 }

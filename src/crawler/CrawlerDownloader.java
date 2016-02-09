@@ -71,7 +71,7 @@ public class CrawlerDownloader implements Runnable {
 			
 			//Connect to host.
 			socket = new Socket();
-			socket.setSoTimeout(HTTPConstants.SOCKET_DEFAULT_TIMEOUT_MS);
+//			socket.setSoTimeout(HTTPConstants.SOCKET_DEFAULT_TIMEOUT_MS);
 			socket.connect(new InetSocketAddress(host, port));
 			CrawlerManager.getInstance().getExecutionRecord().addPort(port);
 			
@@ -80,8 +80,8 @@ public class CrawlerDownloader implements Runnable {
 			
 			
 			//Parse response.
-			boolean shouldReadBody = request.type == HTTPRequestType.GET;
-			HTTPResponse response = HTTPUtils.parseRawHttpResponse(socket.getInputStream(), shouldReadBody);
+			HTTPResponse response = HTTPUtils.parseRawHttpResponse(socket.getInputStream());
+			System.out.println("stasal;ksad");
 			
 			//Handle response
 			if (response != null) {
@@ -186,6 +186,10 @@ public class CrawlerDownloader implements Runnable {
 		
 		//parsed url then create downloader
 		HTTPUtils.URLParsedObject urlParsedObject = HTTPUtils.parsedRawURL(url);
+		if (!HTTPUtils.equalDomains(this.host, urlParsedObject.host)) {
+			System.out.println("domain not equal ignoring redirect");
+		}
+		
 		CrawlerDownloader redirectDownloader  = new CrawlerDownloader(urlParsedObject.host,
 				urlParsedObject.path, urlParsedObject.port);
 		
