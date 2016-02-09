@@ -11,11 +11,11 @@ import synchronization.ThreadPoolManager;
 
 public class CrawlerAnalyzer implements Runnable {
 
-
-	private static final Pattern LINK_TAG_PATTERN = Pattern.compile("(src|href)\\s*=\\s*(\"[^\"]+\"|'[^']+')");
-
-
-
+	//private static final Pattern LINK_TAG_PATTERN = Pattern.compile("(src|href)\\s*=\\s*(\"[^\"]+\"|'[^']+')");
+	
+	private static final Pattern IMG_OR_VIDEO_TAG_PATTERN = Pattern.compile("<(img|source) (src)\\s*=\\s*(\"[^\"]+\"|'[^']+')");
+	private static final Pattern A_OR_LINK_TAG_PATTERN = Pattern.compile("<(a|link) (href)\\s*=\\s*(\"[^\"]+\"|'[^']+')");
+	
 	private String fileContent;
 	private String host;
 	private String path;
@@ -32,11 +32,25 @@ public class CrawlerAnalyzer implements Runnable {
 
 		System.out.println(String.format("Analyzing file from host : %s, and path : %s", host, path));
 
-		Matcher matcher = LINK_TAG_PATTERN.matcher(fileContent);
-		while (matcher.find()) {
+		Matcher matcher1 = IMG_OR_VIDEO_TAG_PATTERN.matcher(fileContent);
+		while (matcher1.find()) {
 			try {
-				String url = matcher.group(2).replace("\"", "").replace("\'", "");
+				String url = matcher1.group(3).replace("\"", "").replace("\'", "");
 				System.out.println("url that regex found is " + url);
+				url = getAbsoulutePath(url);
+				System.out.println("found url " + url);
+
+				foundLink(url);
+			} catch (URISyntaxException | UnsupportedEncodingException e) {
+				System.out.println("Cannot parsed url");
+			} 
+
+		}
+		Matcher matcher2 = A_OR_LINK_TAG_PATTERN.matcher(fileContent);
+		while (matcher2.find()) {
+			try {
+				String url = matcher2.group(3).replace("\"", "").replace("\'", "");
+				System.out.println("url that regex found is LINK " + url);
 				url = getAbsoulutePath(url);
 				System.out.println("found url " + url);
 
