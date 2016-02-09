@@ -1,0 +1,41 @@
+.breadcrumb {
+	box-shadow: 0 0 1px #337ab7;
+}
+
+.sector {
+	margin-bottom: 15px;               
+  	overflow: hidden; 
+  	text-overflow: ellipsis;
+}
+
+.sector-seperated {
+	border-bottom: 1px solid #eee;
+}
+
+.sector-headline, .modal-headline {
+	color: #337ab7;
+	font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
+.sector-header-underline {
+	width: 60%;
+	margin-top: 2px;
+	height: 10px;
+	border: 0;
+	box-shadow: 0 10px 10px -10px #8c8b8b inset;
+}
+
+.sector-seperator {
+	height: 1px;
+	border-bottom: 3px solid #eee;
+	box-shadow: 0 10px 10px -10px #333 inset;
+}
+
+.sector-subtitle-information {
+	color: #337ab7;
+}
+
+.sector-subtitle-information-link {
+	min-width: 120px;
+}
+

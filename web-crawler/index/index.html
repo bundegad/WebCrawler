@@ -1,0 +1,79 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<title> Exercise #3: December 2015</title>
+	<meta charset="utf-8">
+	    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+	    <meta name="viewport" content="width=device-width, initial-scale=1">
+	    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+	    <link rel="shortcut icon" href="/static/img/favicon.ico" type="image/x-icon" />
+	     <link href="/static/css/app.css" rel="stylesheet">
+	    <link href="/static/css/index.css" rel="stylesheet">
+	    <script type="text/javascript" src="/static/js/jquery-2.1.4.min.js"></script>
+	    <script type="text/javascript" src="/static/js/jquery.percentageloader-0.1.min.js"></script>
+</head>
+<body>
+	<!-- Navbar -->
+	<nav class="navbar navbar-inverse">
+	  <div class="container-fluid">
+	    <div class="navbar-header">
+	      <a class="navbar-brand" href="/">
+	      	Web-Crawler
+	      </a>
+	    </div>
+	  </div>
+	</nav>
+
+	<div class="container main-container"> 
+
+		<div id="crawlerFormContainer" class="container">
+			<form method="GET" action="/crawler-start">
+
+			  <div class="form-group">
+			    <label for="domain">Domain</label>
+			    <input type="text" class="form-control" id="domain" placeholder="Domain" name="domain">
+			  </div>
+
+			  
+			  <div class="checkbox">
+			    <label>
+			      <input type="checkbox" name="fullTcp"> Perform full TCP port scan
+			    </label>
+			    <p class="help-block">Checking it will cause the crawler to search all available ports</p>
+			  </div>
+
+			  <div class="checkbox">
+			    <label>
+			      <input type="checkbox" name="disrespectRobot"> Disrespect robots.txt
+			    </label>
+			    <p class="help-block">Checking it will cause the crawler to search pages which are not mentioned in robots.txt</p>
+			  </div>
+			  <div class="bg-danger form-error-message" required>@{error}</div>
+			  <button type="submit" class="btn btn-primary" id="startCrawlerBtn">Start Crawler</button>
+			</form>
+		</div>
+		<hr>
+
+		<div class="container" id="resultsContainer">
+			<div class="row">
+				<h2 class="table-header text-center">Recent Results</h2>
+				<hr class="table-header-underline">
+			</div>
+			<div class="row">
+				<ul class="list-group table-container">
+					@for{recents => <li class="list-group-item table-item">@{name} <a class="btn btn-success" href="@{href}">View</a></li>@for}
+				</ul>
+			</div>
+		</div>
+	</div>
+	
+	<script type="text/javascript">
+		
+		var errorMessage = $(".form-error-message");
+		if (errorMessage.html().length > 0) {
+			errorMessage.show();
+		}
+
+	</script>
+</body>
+</html>

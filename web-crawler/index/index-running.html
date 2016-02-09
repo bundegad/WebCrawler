@@ -1,0 +1,72 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<title> Exercise #3: December 2015</title>
+	<meta charset="utf-8">
+	    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+	    <meta name="viewport" content="width=device-width, initial-scale=1">
+	    <meta http-equiv="refresh" content="5;url=/">
+	    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+	    <link rel="shortcut icon" href="/static/img/favicon.ico" type="image/x-icon" />
+	     <link href="/static/css/app.css" rel="stylesheet">
+	    <link href="/static/css/index.css" rel="stylesheet">
+	    <script type="text/javascript" src="/static/js/jquery-2.1.4.min.js"></script>
+	    <script type="text/javascript" src="/static/js/jquery.percentageloader-0.1.min.js"></script>
+</head>
+<body>
+	<!-- Navbar -->
+	<nav class="navbar navbar-inverse">
+	  <div class="container-fluid">
+	    <div class="navbar-header">
+	      <a class="navbar-brand" href="/">
+	      	Web-Crawler
+	      </a>
+	    </div>
+	  </div>
+	</nav>
+
+	<div class="container main-container"> 
+
+		<div id="crawlerFormContainer" class="container">
+			<div class="row">
+				<h4 class="crawler-running-header">Crawler is running...</h4>
+			</div>
+			<div class="row">
+				<div class="progress">
+ 				 <div class="progress-bar progress-bar-success progress-bar-striped" role="progressbar" aria-valuenow="@{progress}" aria-valuemin="0" aria-valuemax="100" style="width: @{progress}%" id="progressElement">
+    			<span class="sr-only" id="progressSpan">@{progress}% Complete (success)</span>
+ 				</div>
+				</div>
+			</div>
+			<div class="row">
+				<a class="btn btn-danger" href="/crawler-stop">Stop Crawling</a>
+			</div>
+		</div>
+		<hr>
+
+		<div class="container" id="resultsContainer">
+			<div class="row">
+				<h2 class="table-header text-center">Recent Results</h2>
+				<hr class="table-header-underline">
+			</div>
+			<div class="row">
+				<ul class="list-group table-container">
+					@for{recents => <li class="list-group-item table-item">@{name} <a class="btn btn-success" href="@{href}">View</a></li>@for}
+				</ul>
+			</div>
+		</div>
+	</div>
+	
+	<script type="text/javascript">
+
+			var numberDots = 0;
+			var crawlerHeaderText = "Crawler is running";
+
+			setInterval(function() {
+    				numberDots = (numberDots + 1) % 4;
+    				$(".crawler-running-header").html(crawlerHeaderText + Array(numberDots + 1).join("."));
+			}, 1000);
+
+	</script>
+</body>
+</html>

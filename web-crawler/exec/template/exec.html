@@ -1,0 +1,257 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<title> Exercise #3: December 2015</title>
+	<meta charset="utf-8">
+	    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+	    <meta name="viewport" content="width=device-width, initial-scale=1">
+	    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+	    <link rel="shortcut icon" href="/static/img/favicon.ico" type="image/x-icon" />
+	     <link href="/static/css/app.css" rel="stylesheet">
+	    <link href="/static/css/exec.css" rel="stylesheet">
+	    <script type="text/javascript" src="/static/js/jquery-2.1.4.min.js"></script>
+ 		<script type="text/javascript" src="/static/js/bootstrap.min.js"></script>
+</head>
+<body>
+	<!-- Navbar -->
+	<nav class="navbar navbar-inverse">
+	  <div class="container-fluid">
+	    <div class="navbar-header">
+	      <a class="navbar-brand" href="/">
+	      	Web-Crawler
+	      </a>
+	    </div>
+	  </div>
+	</nav>
+
+	<div class="container main-container"> 
+		<div class="row">
+			<ol class="breadcrumb">
+  				<li><a href="/">Index</a></li>
+  				<li><a href="#">@{Domain}</a></li>
+			</ol>
+		</div>
+		<div class="row sector">
+			<div class="col-xs-12 col-md-6">
+				<h3 class="text-center sector-headline">Request Details</h3>
+				<hr class="sector-header-underline">
+			</div>
+			<div class="col-xs-12 col-md-6">
+				<div class="row sector-detail-container">
+					<div class="col-xs-12 col-md-6">
+						<h5>Domain</h5>
+					</div>
+					<div class="col-xs-12 col-md-6">
+						<h5 class="sector-subtitle-information">@{Domain}</h5>
+					</div>
+				</div>
+				<div class="row sector-detail-container">
+					<div class="col-xs-12 col-md-6">
+						<h5>Full Tcp Scan</h5>
+					</div>
+					<div class="col-xs-12 col-md-6">
+						<h5 class="sector-subtitle-information">@{IsFullTcpScan}</h5>
+					</div>
+				</div>
+				<div class="row sector-detail-container">
+					<div class="col-xs-12 col-md-6">
+						<h5>Disrespect Robot.txt</h5>
+					</div>
+					<div class="col-xs-12 col-md-6">
+						<h5 class="sector-subtitle-information">@{IsDisrespectRobots}</h5>
+					</div>
+				</div>
+			</div>
+		</div>
+		<hr class="sector-seperator">
+		<div class="row sector sector-seperated">
+			<div class="col-xs-12 col-md-6">
+				<h3 class="text-center sector-headline">Images and Videos</h3>
+				<hr class="sector-header-underline">
+			</div>
+			<div class="col-xs-12 col-md-6">
+				<div class="row sector-detail-container">
+					<div class="col-xs-12 col-md-6">
+						<h5>Number of Images</h5>
+					</div>
+					<div class="col-xs-12 col-md-6">
+						<h5 class="sector-subtitle-information">@{NumberImages}</h5>
+					</div>
+				</div>
+				<div class="row sector-detail-container">
+					<div class="col-xs-12 col-md-6">
+						<h5>Total Size of Images</h5>
+					</div>
+					<div class="col-xs-12 col-md-6">
+						<h5 class="sector-subtitle-information">@{SizeImages}</h5>
+					</div>
+				</div>
+				<div class="row sector-detail-container">
+					<div class="col-xs-12 col-md-6">
+						<h5>Number of Videos</h5>
+					</div>
+					<div class="col-xs-12 col-md-6">
+						<h5 class="sector-subtitle-information">@{NumberVideos}</h5>
+					</div>
+				</div>
+				<div class="row sector-detail-container">
+					<div class="col-xs-12 col-md-6">
+						<h5>Total Size of Videos</h5>
+					</div>
+					<div class="col-xs-12 col-md-6">
+						<h5 class="sector-subtitle-information">@{SizeVideos}</h5>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="row sector sector-seperated">
+			<div class="col-xs-12 col-md-6">
+				<h3 class="text-center sector-headline">Documents and Pages</h3>
+				<hr class="sector-header-underline">
+			</div>
+			<div class="col-xs-12 col-md-6">
+				<div class="row sector-detail-container">
+					<div class="col-xs-12 col-md-6">
+						<h5>Number of Documents</h5>
+					</div>
+					<div class="col-xs-12 col-md-6">
+						<h5 class="sector-subtitle-information">@{NumberDocuments}</h5>
+					</div>
+				</div>
+				<div class="row sector-detail-container">
+					<div class="col-xs-12 col-md-6">
+						<h5>Total Size of Documents</h5>
+					</div>
+					<div class="col-xs-12 col-md-6">
+						<h5 class="sector-subtitle-information">@{SizeDocuments}</h5>
+					</div>
+				</div>
+				<div class="row sector-detail-container">
+					<div class="col-xs-12 col-md-6">
+						<h5>Number of Pages</h5>
+					</div>
+					<div class="col-xs-12 col-md-6">
+						<h5 class="sector-subtitle-information">@{NumberPages}</h5>
+					</div>
+				</div>
+				<div class="row sector-detail-container">
+					<div class="col-xs-12 col-md-6">
+						<h5>Total Size of Pages</h5>
+					</div>
+					<div class="col-xs-12 col-md-6">
+						<h5 class="sector-subtitle-information">@{SizePages}</h5>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="row sector sector-seperated">
+			<div class="col-xs-12 col-md-6">
+				<h3 class="text-center sector-headline">Links</h3>
+				<hr class="sector-header-underline">
+			</div>
+			<div class="col-xs-12 col-md-6">
+				<div class="row sector-detail-container">
+					<div class="col-xs-12 col-md-6">
+						<h5>Number of Internal Links</h5>
+					</div>
+					<div class="col-xs-12 col-md-6">
+						<h5 class="sector-subtitle-information">@{NumberInternalLinks}</h5>
+					</div>
+				</div>
+				<div class="row sector-detail-container">
+					<div class="col-xs-12 col-md-6">
+						<h5>Number of External Links</h5>
+					</div>
+					<div class="col-xs-12 col-md-6">
+						<h5 class="sector-subtitle-information">@{NumberExternalLinks}</h5>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="row sector sector-seperated">
+			<div class="col-xs-12 col-md-6">
+				<h3 class="text-center sector-headline">Extras</h3>
+				<hr class="sector-header-underline">
+			</div>
+			<div class="col-xs-12 col-md-6">
+				<div class="row sector-detail-container">
+					<div class="col-xs-12 col-md-6">
+						<h5>Number of Domains Connected</h5>
+					</div>
+					<div class="col-xs-12 col-md-6">
+						<h5 class="sector-subtitle-information">@{NumberConnectedDomains}</h5>
+					</div>
+				</div>
+				<div class="row sector-detail-container">
+					<div class="col-xs-12 col-md-6 col-md-offset-6">
+						<a href="#" class="btn btn-warning btn-sm sector-subtitle-information-link" data-toggle="modal" data-target="#domainsModal">View Domains List</a>
+					</div>
+				</div>
+				<div class="row sector-detail-container">
+					<div class="col-xs-12 col-md-6">
+						<h5>Number of Opened Ports</h5>
+					</div>
+					<div class="col-xs-12 col-md-6">
+						<h5 class="sector-subtitle-information">@{NumberPorts}</h5>
+					</div>
+				</div>
+				<div class="row sector-detail-container">
+					<div class="col-xs-12 col-md-6 col-md-offset-6">
+						<button href="#" class="btn btn-warning btn-sm sector-subtitle-information-link" data-toggle="modal" data-target="#portsModal">View Ports List</button>
+					</div>
+				</div>
+				<div class="row sector-detail-container">
+					<div class="col-xs-12 col-md-6">
+						<h5>Average RTT</h5>
+					</div>
+					<div class="col-xs-12 col-md-6">
+						<h5 class="sector-subtitle-information">@{AveragerRTT}</h5>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+
+		<!-- Ports Modal -->
+		<div class="modal fade" id="portsModal" tabindex="-1" role="dialog" aria-labelledby="portsModalLabel">
+		  <div class="modal-dialog" role="document">
+		    <div class="modal-content">
+		      <div class="modal-header">
+		        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+		        <h4 class="modal-title" id="portsLabel">Ports List</h4>
+		      </div>
+		      <div class="modal-body">    
+					<ul class="list-group">
+					  @for{OpenPorts => <li class="list-group-item">@{value}</li>@for}
+					</ul>
+		      </div>
+		      <div class="modal-footer">
+		        <button type="button" class="btn btn-danger" data-dismiss="modal">Close</button>
+		      </div>
+		    </div>
+		  </div>
+		</div>
+
+		<!-- Domains Moda; -->
+		<div class="modal fade" id="domainsModal" tabindex="-1" role="dialog" aria-labelledby="domainsModalLabel">
+		  <div class="modal-dialog" role="document">
+		    <div class="modal-content">
+		      <div class="modal-header">
+		        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+		        <h4 class="modal-title" id="portsLabel">Domains List</h4>
+		      </div>
+		      <div class="modal-body">    
+					<ul class="list-group">
+					  @for{ConnectedDomains => <li class="list-group-item">@{value}</li>@for}
+					</ul>
+		      </div>
+		      <div class="modal-footer">
+		        <button type="button" class="btn btn-danger" data-dismiss="modal">Close</button>
+		      </div>
+		    </div>
+		  </div>
+		</div>
+
+</body>
+</html>
