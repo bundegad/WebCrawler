@@ -30,7 +30,7 @@ public class CrawlerDownloader implements Runnable {
 	private ResourceType resourceType;
 	private Socket socket;
 	private boolean isCheckRobot;
-	public static final String ROBOT_PATH = "/robot.txt";
+	public static final String ROBOT_PATH = "/robots.txt";
 
 	public CrawlerDownloader(String host, String path, int port)  {
 		this.host = host;
