@@ -153,10 +153,11 @@ public class Utils {
 			}
 			
 			int numBytes = 0;
-			while (numBytes < contentLength && inputStream.ready()) {
+			while (numBytes < contentLength) {
 				builder.append((char) inputStream.read());
 				numBytes++;
 			}
+			
 			
 			body = new byte[numBytes];
 			System.arraycopy(builder.toString().getBytes(), 0, body, 0, numBytes);

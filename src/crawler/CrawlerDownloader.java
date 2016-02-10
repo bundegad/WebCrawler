@@ -31,6 +31,8 @@ public class CrawlerDownloader implements Runnable {
 	private Socket socket;
 	private boolean isCheckRobot;
 	public static final String ROBOT_PATH = "/robots.txt";
+	
+	CrawlerExecutionRecord record = CrawlerManager.getInstance().getExecutionRecord();
 
 	public CrawlerDownloader(String host, String path, int port)  {
 		this.host = host;
@@ -139,7 +141,7 @@ public class CrawlerDownloader implements Runnable {
 
 		//Parse response.
 		HTTPResponse response = HTTPUtils.parseRawHttpResponse(socket.getInputStream());
-		
+		System.out.println(response.toString());
 		if (response.code != HTTPResponseCode.OK) {
 			System.out.println("Could not get robot.txt");
 		}

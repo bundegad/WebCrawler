@@ -6,6 +6,7 @@ import java.net.URLDecoder;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import http.HTTPUtils;
+import http.HTTPUtils.URLParsedObject;
 import synchronization.ThreadPoolManager;
 
 public class CrawlerAnalyzer implements Runnable {
@@ -25,8 +26,10 @@ public class CrawlerAnalyzer implements Runnable {
 
 	@Override
 	public void run() {
+
+		//HTML with no Comments
 		String fileContentNoComments = fileContent.replaceAll("(?s)<!--(.*?)-->", "");
-		System.out.println(fileContentNoComments);
+
 		System.out.println(String.format("Analyzing file from host : %s, and path : %s", host, path));
 	
 		Matcher matcher1 = IMG_TAG_PATTERN.matcher(fileContentNoComments);
@@ -93,13 +96,17 @@ public class CrawlerAnalyzer implements Runnable {
 				return null;
 			}
 		}
-		
+		 if (parseObj.host.isEmpty()) {
+			 return  String.format("%s%s%s", host, path, url);
+		 }
+		 
 		String parsedUrl =  String.format("%s%s", parseObj.host, parseObj.path);
 		return parsedUrl;
 	}
 
-	private boolean isInternal(String url) {
-		return HTTPUtils.equalDomains(url, host);
+	private boolean isInternal(String url) throws URISyntaxException {
+		return HTTPUtils.equalDomains(HTTPUtils.parsedRawURL(url).host, host);
+
 	}
 
 	private String extractDomain(String url) {
@@ -108,19 +115,21 @@ public class CrawlerAnalyzer implements Runnable {
 	}
 
 	private void foundLink(String url) throws URISyntaxException {
-
-		CrawlerExecutionRecord record = CrawlerManager.getInstance().getExecutionRecord();
+		
+		CrawlerExecutionRecord record = CrawlerManager.getInstance().getExecutionRecord();	
 		if (!record.shouldAddResource(url)) {
 			return;
 		}
 
 		if (!isInternal(url)) {
+			record.addExternalLink();
 			String domain  = extractDomain(url);
 			record.addDomain(domain);
 			return;
 		}
-
 		
+
+		record.addInternalLink();
 		HTTPUtils.URLParsedObject parsedObject  =  HTTPUtils.parsedRawURL(url);
 		record.addResource(parsedObject.path);
 		CrawlerDownloader downloader = new CrawlerDownloader(parsedObject.host, parsedObject.path, parsedObject.port);

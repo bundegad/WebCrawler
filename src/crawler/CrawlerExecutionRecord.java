@@ -142,7 +142,7 @@ public class CrawlerExecutionRecord {
 	}
 	
 	public synchronized  boolean shouldAddResource(String resource) {
-		return hasResouce(resource) && disrespectPath != null && resource.startsWith(disrespectPath);
+		return !hasResouce(resource) && (disrespectPath == null || resource.startsWith(disrespectPath));
 	}
 	
 	public synchronized void addResource(String resource) {
