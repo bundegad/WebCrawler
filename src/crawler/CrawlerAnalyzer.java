@@ -110,7 +110,7 @@ public class CrawlerAnalyzer implements Runnable {
 	private void foundLink(String url) throws URISyntaxException {
 
 		CrawlerExecutionRecord record = CrawlerManager.getInstance().getExecutionRecord();
-		if (record.hasResouce(url)) {
+		if (!record.shouldAddResource(url)) {
 			return;
 		}
 
@@ -120,7 +120,9 @@ public class CrawlerAnalyzer implements Runnable {
 			return;
 		}
 
+		
 		HTTPUtils.URLParsedObject parsedObject  =  HTTPUtils.parsedRawURL(url);
+		record.addResource(parsedObject.path);
 		CrawlerDownloader downloader = new CrawlerDownloader(parsedObject.host, parsedObject.path, parsedObject.port);
 		ThreadPoolManager manager = ThreadPoolManager.getInstance();
 		manager.get(CrawlerExecuter.DONWLOADERS_POOL_KEY).execute(downloader);

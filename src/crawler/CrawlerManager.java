@@ -100,7 +100,6 @@ public class CrawlerManager {
 		progress = 0;
 		executor.stop();
 		executor = null;
-		executionRecord = null;
 		
 		System.out.println("crawler manager stopped");
 		state = State.WAITING;

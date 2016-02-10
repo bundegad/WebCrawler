@@ -11,12 +11,10 @@ import synchronization.ThreadPoolManager.IOnEmptyCallback;
 
 public class CrawlerExecuter {
 	
-	private static boolean IGNORE_FULL_TCP = true;
 	
 	public static final String ANALYZERS_POOL_KEY = "analyzers_pool_key";
 	public static final String DONWLOADERS_POOL_KEY = "downloaders_pool_key";
 	public static final String SCANNERS_POOL_KEY = "scanners_pool_key";
-	
 	
 	private final IOnEmptyCallback ON_PORT_SCANNED_CB = new IOnEmptyCallback() {
 		
@@ -62,7 +60,7 @@ public class CrawlerExecuter {
 
 
 	public void start() throws URISyntaxException {
-		if (record.isFullTcp && !IGNORE_FULL_TCP) {
+		if (record.isFullTcp) {
 			scanPorts();
 		} else {
 			startCrawling();
@@ -122,16 +120,20 @@ public class CrawlerExecuter {
 		
 		downloadersPool.start();
 		analyzersPool.start();
-	
-		CrawlerDownloader downloader;
-				
+					
 		HTTPUtils.URLParsedObject urlObject = HTTPUtils.parsedRawURL(record.domain);
 		if (urlObject == null) {
 			System.out.println("Not supported http schema stopping crawler");
 			return;
 		}
 		
-		downloader = new CrawlerDownloader(urlObject.host, urlObject.path, urlObject.port);
+		record.addResource(urlObject.path);
+		CrawlerDownloader downloader = new CrawlerDownloader(urlObject.host, urlObject.path, urlObject.port);
+		
+		if (!record.isDisrespectRobot) {
+			downloader.enableRobot();
+		}
+		
 		downloadersPool.execute(downloader);
 
 		

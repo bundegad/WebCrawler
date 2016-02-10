@@ -14,12 +14,14 @@ public class CrawlerExecutionRecord {
 	private final String id;
 	public final String domain;
 	public final boolean isFullTcp;
-	private final boolean isDisrespectRobot;
+	public final boolean isDisrespectRobot;
+	private String disrespectPath;
 	private final ArrayList<Integer> ports;
 	private final ArrayList<String> domains;
 	private final String dateTime;
 
-	private double averageRTT;
+	private long sumRTT;
+	private long numRTT;
 
 	private int numDocuments;
 	private int sizeDocuments;
@@ -43,11 +45,14 @@ public class CrawlerExecutionRecord {
 		this.isFullTcp = isFullTcp;
 		this.isDisrespectRobot = isDisrespectRobot;
 		this.ports = new ArrayList<>();
-		averageRTT = 0;
 		this.domains = new ArrayList<>();
 		this.dateTime = new Date(System.currentTimeMillis()).toString();
 		this.id  = UUID.randomUUID().toString();
 		this.resources = new ArrayList<>();
+	}
+	
+	public void addDisrespectPath(String path) {
+		this.disrespectPath = path;
 	}
 
 	public String getId() {
@@ -70,7 +75,9 @@ public class CrawlerExecutionRecord {
 
 		jsonResult.put(ExecutionFileConstants.OPEN_PORTS, portsJson);
 		jsonResult.put(ExecutionFileConstants.NUMBER_OPEN_PORTS, Integer.toString(portsJson.length()));
-		jsonResult.put(ExecutionFileConstants.AVERAGE_RTT, Double.toString(averageRTT));
+		numRTT = numRTT == 0 ? 1 : numRTT;
+		jsonResult.put(ExecutionFileConstants.AVERAGE_RTT, Double.toString(sumRTT/(double)numRTT));
+
 
 		JSONArray domainsJson = new JSONArray();
 		for (String connectedDomain : domains) {
@@ -130,11 +137,15 @@ public class CrawlerExecutionRecord {
 		this.sizePages += size;
 	}
 
-	public boolean hasResouce(String resource) {
+	private boolean hasResouce(String resource) {
 		return resources.contains(resource);
 	}
-
-	public void addResource(String resource) {
+	
+	public synchronized  boolean shouldAddResource(String resource) {
+		return hasResouce(resource) && disrespectPath != null && resource.startsWith(disrespectPath);
+	}
+	
+	public synchronized void addResource(String resource) {
 		this.resources.add(resource);
 	}
 	
@@ -143,5 +154,17 @@ public class CrawlerExecutionRecord {
 			domains.add(domain);
 		}
 	}
-
+	
+	public synchronized void addExternalLink() {
+		this.numExternalLinks++;
+	} 
+	
+	public synchronized void addInternalLink() {
+		this.numInternalLinks++;
+	}
+	
+	public synchronized void addRTT(long rtt) {
+		sumRTT += rtt;
+		numRTT++;
+	}
 }

@@ -7,6 +7,7 @@ import java.net.Socket;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 
+import exceptions.ServerException;
 import http.HTTPConstants;
 import http.HTTPRequest;
 import http.HTTPRequestType;
@@ -28,12 +29,19 @@ public class CrawlerDownloader implements Runnable {
 	private String path;
 	private ResourceType resourceType;
 	private Socket socket;
+	private boolean isCheckRobot;
+	public static final String ROBOT_PATH = "/robots.txt";
 
 	public CrawlerDownloader(String host, String path, int port)  {
 		this.host = host;
 		this.path = path;
 		this.port = port;
+		this.isCheckRobot = false;
 		setType();
+	}
+
+	public void enableRobot() {
+		this.isCheckRobot = true;
 	}
 
 	private void setType() {
@@ -69,12 +77,21 @@ public class CrawlerDownloader implements Runnable {
 		HTTPRequest request = getRequest();
 
 		try {
-
+			
 			//Connect to host.
 			socket = new Socket();
 			socket.setSoTimeout(HTTPConstants.SOCKET_DEFAULT_TIMEOUT_MS);
-			socket.connect(new InetSocketAddress(host, port));
+			
+			long rtt = connectSocketWithRtt();
 			CrawlerManager.getInstance().getExecutionRecord().addPort(port);
+			CrawlerManager.getInstance().getExecutionRecord().addRTT(rtt);
+			
+			//Check if robot 
+			if (isCheckRobot) {
+				handleRobot();
+				socket.close();
+				return;
+			}
 
 			//Write the request
 			io.Utils.writeOutputStream(socket.getOutputStream(), request.toHTTPString().getBytes());
@@ -110,46 +127,78 @@ public class CrawlerDownloader implements Runnable {
 	}
 
 
+	private void handleRobot() throws IOException, ServerException {
+		
+		HTTPRequest request = new HTTPRequest(ROBOT_PATH, HTTPRequestType.GET);
+		request.setHeaders(new HashMap<String, String>());
+		
+		//Write the request
+		io.Utils.writeOutputStream(socket.getOutputStream(), request.toHTTPString().getBytes());
+		System.out.println(request.toHTTPString());
+
+
+		//Parse response.
+		HTTPResponse response = HTTPUtils.parseRawHttpResponse(socket.getInputStream());
+		
+		if (response.code != HTTPResponseCode.OK) {
+			System.out.println("Could not get robot.txt");
+		}
+		
+		System.out.println(response.toString());
+		CrawlerDownloader redirectDownloader = new CrawlerDownloader(this.host, this.path, this.port);
+		ThreadPoolManager poolManager = ThreadPoolManager.getInstance();
+		poolManager.get(CrawlerExecuter.DONWLOADERS_POOL_KEY).execute(redirectDownloader);
+		
+	}
+
 	private void handleResponse(HTTPResponse response) throws UnsupportedEncodingException, URISyntaxException {
+
 
 		//Handle redirect
 		if (response.code == HTTPResponseCode.REDIRECT) {
 
 			String redirectPath = response.getHeader(HTTPConstants.HTTP_LOCATION_KEY);
-			if (redirectPath != null) {
-				redirect(redirectPath);
+			if (redirectPath == null) {
 				return;
 			}
+
+			if (redirectPath.startsWith("/")) {
+				redirectPath = String.format("%s%s", host, redirectPath);
+			}
+
+
+			redirect(redirectPath);
+			return;
 		}
 
+		if (response.code != HTTPResponseCode.OK) {
+			return;
+		}
 
 		//Handle OK
-		if (response.code == HTTPResponseCode.OK) {
+		int contentLength =  Integer.parseInt(response.getHeader(HTTPConstants.HTTP_CONTENT_LENGTH_KEY));
 
-			int contentLength =  Integer.parseInt(response.getHeader(HTTPConstants.HTTP_CONTENT_LENGTH_KEY));
-
-			switch(this.resourceType) {
-			case IMAGE:
-				System.out.println("add an image");
-				CrawlerManager.getInstance().getExecutionRecord().addImage(contentLength);
-				break;
-			case VIDEO:
-				System.out.println("add an video");
-				CrawlerManager.getInstance().getExecutionRecord().addVideo(contentLength);
-				break;
-			case DOCUMENT:
-				System.out.println("add an document");
-				CrawlerManager.getInstance().getExecutionRecord().addDocument(contentLength);
-				break;
-			case PAGE:
-				System.out.println("add an page");
-				CrawlerManager.getInstance().getExecutionRecord().addPage(contentLength);
-				if (shouldAnalyze(response)) {
-					sendToAnalyzer(new String(response.fileContent));
-				} else {
-					System.out.println("Not html ignoring anlyzer");
-					System.out.println(response.toString());
-				}
+		switch(this.resourceType) {
+		case IMAGE:
+			System.out.println("add an image");
+			CrawlerManager.getInstance().getExecutionRecord().addImage(contentLength);
+			break;
+		case VIDEO:
+			System.out.println("add an video");
+			CrawlerManager.getInstance().getExecutionRecord().addVideo(contentLength);
+			break;
+		case DOCUMENT:
+			System.out.println("add an document");
+			CrawlerManager.getInstance().getExecutionRecord().addDocument(contentLength);
+			break;
+		case PAGE:
+			System.out.println("add an page");
+			CrawlerManager.getInstance().getExecutionRecord().addPage(contentLength);
+			if (shouldAnalyze(response)) {
+				sendToAnalyzer(new String(response.fileContent));
+			} else {
+				System.out.println("Not html ignoring anlyzer");
+				System.out.println(response.toString());
 			}
 		}
 
@@ -190,17 +239,20 @@ public class CrawlerDownloader implements Runnable {
 
 		CrawlerDownloader redirectDownloader  = new CrawlerDownloader(urlParsedObject.host,
 				urlParsedObject.path, urlParsedObject.port);
+		if (isCheckRobot) {
+			redirectDownloader.enableRobot();
+		}
 
 		//Send the downloader to pool.
 		ThreadPoolManager poolManager = ThreadPoolManager.getInstance();
 		poolManager.get(CrawlerExecuter.DONWLOADERS_POOL_KEY).execute(redirectDownloader);
 	}
-	
+
 	private boolean shouldAnalyze(HTTPResponse response) {
 		if (response.getHeader(HTTPConstants.HTTP_CONNECTION_KEY) == null) {
 			return true;
 		}
-		
+
 		return response.getHeader(HTTPConstants.HTTP_CONTENT_TYPE_KEY).contains(HTTPConstants.HTTP_CONTENT_TYPE_HTML)
 				&& response.fileContent != null;
 	}
@@ -212,4 +264,9 @@ public class CrawlerDownloader implements Runnable {
 		poolManager.get(CrawlerExecuter.ANALYZERS_POOL_KEY).execute(redirectDownloader);
 	}
 
+	private long connectSocketWithRtt() throws IOException {
+		long startTime = System.currentTimeMillis();
+		socket.connect(new InetSocketAddress(host, port));
+		return System.currentTimeMillis() - startTime;
+	}
 }
