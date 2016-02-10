@@ -150,6 +150,8 @@ public class Utils {
 			int contentLength = 0;
 			if (headers.containsKey(HTTP_CONTENT_LENGTH_KEY)) {
 				contentLength = Integer.parseInt(headers.get(HTTPConstants.HTTP_CONTENT_LENGTH_KEY));
+			} else {
+				headers.put(HTTPConstants.HTTP_CONTENT_LENGTH_KEY, "0");
 			}
 			
 			int numBytes = 0;
@@ -159,6 +161,7 @@ public class Utils {
 			}
 			
 			body = new byte[numBytes];
+			
 			System.arraycopy(builder.toString().getBytes(), 0, body, 0, numBytes);
 
 			

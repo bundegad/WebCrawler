@@ -17,12 +17,12 @@ import synchronization.ThreadPoolManager;
 
 
 public class CrawlerDownloader implements Runnable {
-	
+
 	private enum ResourceType {
-		IMAGE, VIDEO, DOCUMENT, PAGE, UNKNOWN
+		IMAGE, VIDEO, DOCUMENT, PAGE
 	}
-	
-	
+
+
 	private String host;
 	private int port;
 	private String path;
@@ -35,25 +35,26 @@ public class CrawlerDownloader implements Runnable {
 		this.port = port;
 		setType();
 	}
-	
+
 	private void setType() {
 		CrawlerManager manager = CrawlerManager.getInstance();
-		
+
 		if (manager.isImage(path)) {
 			resourceType = ResourceType.IMAGE;
 			return;
 		}
-		
+
 		if (manager.isDocument(path)) {
 			resourceType = ResourceType.DOCUMENT;
 			return;
 		}
-		
+
 		if (manager.isVideo(path)) {
+			System.out.println(path);
 			resourceType = ResourceType.VIDEO;
 			return;
 		}
-		
+
 		resourceType = ResourceType.PAGE;
 		System.out.println("Path is " + path + "and resource type is " + resourceType + "==========");
 	}
@@ -61,45 +62,44 @@ public class CrawlerDownloader implements Runnable {
 
 	@Override
 	public void run() {
-		
-		
+
+
 		System.out.println(String.format("downliading form host: %s, path: %s, and port: %s", host, path, port));
-		
+
 		HTTPRequest request = getRequest();
-		
+
 		try {
-			
+
 			//Connect to host.
 			socket = new Socket();
-//			socket.setSoTimeout(HTTPConstants.SOCKET_DEFAULT_TIMEOUT_MS);
+			socket.setSoTimeout(HTTPConstants.SOCKET_DEFAULT_TIMEOUT_MS);
 			socket.connect(new InetSocketAddress(host, port));
 			CrawlerManager.getInstance().getExecutionRecord().addPort(port);
-			
+
 			//Write the request
 			io.Utils.writeOutputStream(socket.getOutputStream(), request.toHTTPString().getBytes());
-			
-			
+
+
 			//Parse response.
 			HTTPResponse response = HTTPUtils.parseRawHttpResponse(socket.getInputStream());
-			System.out.println("stasal;ksad");
-			
+
 			//Handle response
 			if (response != null) {
 				System.out.println(String.format("Received response with code : %s", response.code));
 				handleResponse(response);
 			}
-			
-			
+
+
 			System.out.println(String.format("finish downliading form host: %s, path: %s, and port: %s", host, path, port));
-			
+
 		} catch (Exception e) {
 			System.out.println(String.format("Error, could not get repsonse from Host: %s,"
 					+ " on port: %s, and path: %s and message: %s", host, port, path, e.getMessage()));
 			e.printStackTrace();
 		} finally {
-			
+
 			if (socket != null) {
-				
+
 				try {
 					socket.close();
 				} catch (IOException e) {
@@ -108,65 +108,64 @@ public class CrawlerDownloader implements Runnable {
 			}
 		}
 	}
-	
-	
+
+
 	private void handleResponse(HTTPResponse response) throws UnsupportedEncodingException, URISyntaxException {
-		
+
 		//Handle redirect
 		if (response.code == HTTPResponseCode.REDIRECT) {
-			
+
 			String redirectPath = response.getHeader(HTTPConstants.HTTP_LOCATION_KEY);
 			if (redirectPath != null) {
 				redirect(redirectPath);
 				return;
 			}
 		}
-		
-//		if(response.getHeader(HTTPConstants.HTTP_CONTENT_TYPE_KEY)
-//				.equals(HTTPConstants.HTTP_CONTENT_TYPE_HTML)) {
-//			resourceType = ResourceType.UNKNOWN;
-//		}
-		
-		
+
+
 		//Handle OK
 		if (response.code == HTTPResponseCode.OK) {
-			
+
 			int contentLength =  Integer.parseInt(response.getHeader(HTTPConstants.HTTP_CONTENT_LENGTH_KEY));
-			
+
 			switch(this.resourceType) {
-				case IMAGE:
-					CrawlerManager.getInstance().getExecutionRecord().addImage(contentLength);
-					break;
-				case VIDEO:
-					CrawlerManager.getInstance().getExecutionRecord().addVideo(contentLength);
-					break;
-				case DOCUMENT:
-					CrawlerManager.getInstance().getExecutionRecord().addDocument(contentLength);
-					break;
-				case PAGE:
-					CrawlerManager.getInstance().getExecutionRecord().addPage(contentLength);
-					if (response.fileContent != null) {
-						sendToAnalyzer(new String(response.fileContent));
-					}
-					break;
-				case UNKNOWN:
-					return;
+			case IMAGE:
+				System.out.println("add an image");
+				CrawlerManager.getInstance().getExecutionRecord().addImage(contentLength);
+				break;
+			case VIDEO:
+				System.out.println("add an video");
+				CrawlerManager.getInstance().getExecutionRecord().addVideo(contentLength);
+				break;
+			case DOCUMENT:
+				System.out.println("add an document");
+				CrawlerManager.getInstance().getExecutionRecord().addDocument(contentLength);
+				break;
+			case PAGE:
+				System.out.println("add an page");
+				CrawlerManager.getInstance().getExecutionRecord().addPage(contentLength);
+				if (shouldAnalyze(response)) {
+					sendToAnalyzer(new String(response.fileContent));
+				} else {
+					System.out.println("Not html ignoring anlyzer");
+					System.out.println(response.toString());
+				}
 			}
 		}
-		
+
 	}
 
 	private HTTPRequest getRequest() {
-		
+
 		HTTPRequestType type =  resourceType == ResourceType.PAGE ? HTTPRequestType.GET : HTTPRequestType.HEAD;
 		HTTPRequest request = new HTTPRequest(path, type);
-		
+
 		HashMap<String, String> headers = getHeaders();
 		request.setHeaders(headers);
-		
+
 		return request;
 	}
-	
+
 
 	private HashMap<String, String> getHeaders() {
 		HashMap<String, String> headers = new HashMap<>();
@@ -177,32 +176,40 @@ public class CrawlerDownloader implements Runnable {
 	}
 
 	private void redirect(String url) throws URISyntaxException {
-		
-		if (!url.startsWith("http://") && !url.startsWith(host)) {
-			url = String.format("http://%s%s", host, url);
-		}
-		
-		System.out.println("Redirecting to " + url);
-		
+
 		//parsed url then create downloader
 		HTTPUtils.URLParsedObject urlParsedObject = HTTPUtils.parsedRawURL(url);
+		if (urlParsedObject == null) {
+			System.out.println("Not supported http schema,  stopping crawler");
+			return;
+		}
+
 		if (!HTTPUtils.equalDomains(this.host, urlParsedObject.host)) {
 			System.out.println("domain not equal ignoring redirect");
 		}
-		
+
 		CrawlerDownloader redirectDownloader  = new CrawlerDownloader(urlParsedObject.host,
 				urlParsedObject.path, urlParsedObject.port);
-		
+
 		//Send the downloader to pool.
 		ThreadPoolManager poolManager = ThreadPoolManager.getInstance();
 		poolManager.get(CrawlerExecuter.DONWLOADERS_POOL_KEY).execute(redirectDownloader);
 	}
 	
+	private boolean shouldAnalyze(HTTPResponse response) {
+		if (response.getHeader(HTTPConstants.HTTP_CONNECTION_KEY) == null) {
+			return true;
+		}
+		
+		return response.getHeader(HTTPConstants.HTTP_CONTENT_TYPE_KEY).contains(HTTPConstants.HTTP_CONTENT_TYPE_HTML)
+				&& response.fileContent != null;
+	}
+
 	private void sendToAnalyzer(String content) {
 		System.out.println("Sending to anyalyzer content for path " + path);
 		CrawlerAnalyzer redirectDownloader  = new CrawlerAnalyzer(host, path, content);
 		ThreadPoolManager poolManager = ThreadPoolManager.getInstance();
 		poolManager.get(CrawlerExecuter.ANALYZERS_POOL_KEY).execute(redirectDownloader);
 	}
-	
+
 }

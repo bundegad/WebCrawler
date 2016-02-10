@@ -13,7 +13,7 @@ public class CrawlerAnalyzer implements Runnable {
 
 	//private static final Pattern LINK_TAG_PATTERN = Pattern.compile("(src|href)\\s*=\\s*(\"[^\"]+\"|'[^']+')");
 	
-	private static final Pattern IMG_OR_VIDEO_TAG_PATTERN = Pattern.compile("<(img|source) (src)\\s*=\\s*(\"[^\"]+\"|'[^']+')");
+	private static final Pattern IMG_OR_VIDEO_TAG_PATTERN = Pattern.compile("<(img|source|script) (src)\\s*=\\s*(\"[^\"]+\"|'[^']+')");
 	private static final Pattern A_OR_LINK_TAG_PATTERN = Pattern.compile("<(a|link) (href)\\s*=\\s*(\"[^\"]+\"|'[^']+')");
 	
 	private String fileContent;
@@ -38,6 +38,10 @@ public class CrawlerAnalyzer implements Runnable {
 				String url = matcher1.group(3).replace("\"", "").replace("\'", "");
 				System.out.println("url that regex found is " + url);
 				url = getAbsoulutePath(url);
+				if (url == null) {
+					System.out.println("found unsupported url schema for url " + url);
+					continue;
+				}
 				System.out.println("found url " + url);
 
 				foundLink(url);
@@ -52,6 +56,10 @@ public class CrawlerAnalyzer implements Runnable {
 				String url = matcher2.group(3).replace("\"", "").replace("\'", "");
 				System.out.println("url that regex found is LINK " + url);
 				url = getAbsoulutePath(url);
+				if (url == null) {
+					System.out.println("found unsupported url schema for url " + url);
+					continue;
+				}
 				System.out.println("found url " + url);
 
 				foundLink(url);
@@ -74,12 +82,25 @@ public class CrawlerAnalyzer implements Runnable {
 		}
 
 		HTTPUtils.URLParsedObject parseObj = HTTPUtils.parsedRawURL(url);
+		
+		//Check if Url starts with https and is not supported
+		if (parseObj == null) {
+			
+			//Remove https
+			url = url.substring(8);
+			if (!isInternal(url)) {
+				String domain  = extractDomain(url);
+				CrawlerManager.getInstance().getExecutionRecord().addDomain(domain);
+				return null;
+			}
+		}
+		
 		String parsedUrl =  String.format("%s%s", parseObj.host, parseObj.path);
 		return parsedUrl;
 	}
 
 	private boolean isInternal(String url) {
-		return url.startsWith(host);
+		return HTTPUtils.equalDomains(url, host);
 	}
 
 	private String extractDomain(String url) {

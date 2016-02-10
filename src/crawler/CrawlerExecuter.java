@@ -126,6 +126,11 @@ public class CrawlerExecuter {
 		CrawlerDownloader downloader;
 				
 		HTTPUtils.URLParsedObject urlObject = HTTPUtils.parsedRawURL(record.domain);
+		if (urlObject == null) {
+			System.out.println("Not supported http schema stopping crawler");
+			return;
+		}
+		
 		downloader = new CrawlerDownloader(urlObject.host, urlObject.path, urlObject.port);
 		downloadersPool.execute(downloader);
 

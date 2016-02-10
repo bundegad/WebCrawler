@@ -59,10 +59,7 @@ public class HTTPRequestHandler implements Runnable {
 	}
 	
 	private void sendResponse() throws ServerException, IOException {
-	
 		io.Utils.writeOutputStream(this.connection.getOutputStream(), this.response.toString());
-//		System.out.println(String.format("Sent Response:\n%s", this.response));
-		
 
 		if (shouldAttachFile()) {
 			writeAttachedFile();

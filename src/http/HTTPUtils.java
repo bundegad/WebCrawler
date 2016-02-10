@@ -65,6 +65,9 @@ public class HTTPUtils {
 		
 		//clean first line
 		String firstLine = removeSpaces(httpMessageObject.firstLine);
+		if(firstLine == null) {
+			return null;
+		}
 
 
 		//Parse first line
@@ -98,8 +101,12 @@ public class HTTPUtils {
 		} catch (UnsupportedEncodingException e) {
 
 		}
+		
+		if (url.startsWith("https://")) {
+			return null;
+		}
 
-		if (!url.startsWith("http://") && !url.startsWith("https://")) {
+		if (!url.startsWith("http://")) {
 			url = String.format("http://%s", url);
 		}
 
@@ -137,18 +144,17 @@ public class HTTPUtils {
 	}
 
 	private static void parseURLParams(HTTPRequest request) throws ServerException {
-		String[] pathParts = request.path.split("\\?");
-
-		if (pathParts.length > 2) {
-			throw new ServerException(HTTPResponseCode.BAD_REQUEST);
+		
+		int indexOfQuery = request.path.indexOf('?');
+		if (indexOfQuery == -1) {
+			return;
 		}
+		
+		String path = request.path.substring(0,indexOfQuery);
+		String query = request.path.substring(indexOfQuery + 1, request.path.length());
 
-
-		if (pathParts.length == 2) {
-			request.path = pathParts[0];
-			request.setParams(parseRawParams(pathParts[1]));
-		}
-
+		request.path = path;
+		request.setParams(parseRawParams(query));
 	}
 
 	private static HashMap<String, String> parseRawParams(String rawParams) throws ServerException {
@@ -160,20 +166,21 @@ public class HTTPUtils {
 
 		String[] paramsParts = rawParams.split("&");
 		for (int  i = 0; i < paramsParts.length; i++) {
-			String[] keyValue = paramsParts[i].split("=");
-			if (keyValue.length == 1) {
-				params.put(keyValue[0], "");
-			} else if (keyValue.length == 2) {
-				params.put(keyValue[0], keyValue[1]);
-			} else {
+			int indexOfSeperator = paramsParts[i].indexOf('=');
+			if (indexOfSeperator == -1) {
 				return params;
 			}
+			params.put(paramsParts[i].substring(0, indexOfSeperator), paramsParts[i].substring(indexOfSeperator + 1));
 		}
 
 		return params;
 	}
 
 	private static String removeSpaces(String str) {
+		if (str == null) {
+			return null;
+		}
+		
 		return str.replaceAll("\\s*", "");
 	}
 

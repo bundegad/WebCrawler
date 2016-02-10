@@ -6,7 +6,6 @@ import configuration.ErrorConfig;
 import exceptions.ServerException;
 import http.HTTPConstants;
 import http.HTTPRequest;
-import http.HTTPRequestType;
 import http.HTTPResponse;
 import http.HTTPResponseCode;
 import http.Router;
@@ -33,7 +32,7 @@ public class ErrorsHandler extends AbstractBaseHandler {
 		}
 		
 		System.out.println("Errors handler called with code " + code);
-		String version = request.version;
+		String version = request != null ? request.version : HTTPConstants.HTTP_TYPE_1_0;
 		HTTPResponse response = new HTTPResponse(code, version);
 
 		if (configuration.isErrorFileExists(code)) {
@@ -52,9 +51,6 @@ public class ErrorsHandler extends AbstractBaseHandler {
 			response.addHeader(HTTPConstants.HTTP_CONTENT_LENGTH_KEY, Integer.toString(fileContent.length()));
 			response.addHeader(HTTPConstants.HTTP_CONTENT_TYPE_KEY, type.toString());
 			response.attachFileContent(fileContent.getBytes());
-		}
-		
-		if (request.type == HTTPRequestType.GET || request.type == HTTPRequestType.POST) {
 			response.shouldAttachFile = true;
 		}
 		
