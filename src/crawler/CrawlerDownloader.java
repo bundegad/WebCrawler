@@ -31,6 +31,8 @@ public class CrawlerDownloader implements Runnable {
 	private Socket socket;
 	private boolean isCheckRobot;
 	public static final String ROBOT_PATH = "/robots.txt";
+	
+	CrawlerExecutionRecord record = CrawlerManager.getInstance().getExecutionRecord();
 
 	public CrawlerDownloader(String host, String path, int port)  {
 		this.host = host;

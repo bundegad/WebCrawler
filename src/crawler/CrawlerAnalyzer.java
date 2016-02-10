@@ -5,15 +5,13 @@ import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import http.HTTPUtils;
 import synchronization.ThreadPoolManager;
 
 public class CrawlerAnalyzer implements Runnable {
-
 	
-	private static final Pattern IMG_OR_VIDEO_TAG_PATTERN = Pattern.compile("<(img|source|script).* (src)\\s*=\\s*(\"[^\"]+\"|'[^']+')");
-	private static final Pattern A_OR_LINK_TAG_PATTERN = Pattern.compile("<(a|link).* (href)\\s*=\\s*(\"[^\"]+\"|'[^']+')");
+	private static final Pattern IMG_TAG_PATTERN = Pattern.compile("(?i)<(img)\\s[^>]*(src)\\s*=\\s*(\"[^\"]+\"|'[^']+')");
+	private static final Pattern A_TAG_PATTERN = Pattern.compile("(?i)<(a)\\s[^>]*(href)\\s*=\\s*(\"[^\"]+\"|'[^']+')");
 	
 	private String fileContent;
 	private String host;
@@ -25,13 +23,15 @@ public class CrawlerAnalyzer implements Runnable {
 		this.path = path;
 	}
 
-
 	@Override
 	public void run() {
 
-		System.out.println(String.format("Analyzing file from host : %s, and path : %s", host, path));
+		//HTML with no Comments
+		String fileContentNoComments = fileContent.replaceAll("(?s)<!--(.*?)-->", "");
 
-		Matcher matcher1 = IMG_OR_VIDEO_TAG_PATTERN.matcher(fileContent);
+		System.out.println(String.format("Analyzing file from host : %s, and path : %s", host, path));
+	
+		Matcher matcher1 = IMG_TAG_PATTERN.matcher(fileContentNoComments);
 		while (matcher1.find()) {
 			try {
 				String url = matcher1.group(3).replace("\"", "").replace("\'", "");
@@ -49,9 +49,11 @@ public class CrawlerAnalyzer implements Runnable {
 			} 
 
 		}
-		Matcher matcher2 = A_OR_LINK_TAG_PATTERN.matcher(fileContent);
+		Matcher matcher2 = A_TAG_PATTERN.matcher(fileContentNoComments);
 		while (matcher2.find()) {
 			try {
+				String help = matcher2.group(3);
+				System.out.println(help);
 				String url = matcher2.group(3).replace("\"", "").replace("\'", "");
 				url = getAbsoulutePath(url);
 				if (url == null) {
@@ -92,13 +94,17 @@ public class CrawlerAnalyzer implements Runnable {
 				return null;
 			}
 		}
-		
+		 if (parseObj.host.isEmpty()) {
+			 return  String.format("%s%s%s", host, path, url);
+		 }
+		 
 		String parsedUrl =  String.format("%s%s", parseObj.host, parseObj.path);
 		return parsedUrl;
 	}
 
-	private boolean isInternal(String url) {
-		return HTTPUtils.equalDomains(url, host);
+	private boolean isInternal(String url) throws URISyntaxException {
+		return HTTPUtils.equalDomains(HTTPUtils.parsedRawURL(url).host, host);
+
 	}
 
 	private String extractDomain(String url) {
@@ -107,19 +113,21 @@ public class CrawlerAnalyzer implements Runnable {
 	}
 
 	private void foundLink(String url) throws URISyntaxException {
-
-		CrawlerExecutionRecord record = CrawlerManager.getInstance().getExecutionRecord();
+		
+		CrawlerExecutionRecord record = CrawlerManager.getInstance().getExecutionRecord();	
 		if (!record.shouldAddResource(url)) {
 			return;
 		}
 
 		if (!isInternal(url)) {
+			record.addExternalLink();
 			String domain  = extractDomain(url);
 			record.addDomain(domain);
 			return;
 		}
-
 		
+
+		record.addInternalLink();
 		HTTPUtils.URLParsedObject parsedObject  =  HTTPUtils.parsedRawURL(url);
 		record.addResource(parsedObject.path);
 		CrawlerDownloader downloader = new CrawlerDownloader(parsedObject.host, parsedObject.path, parsedObject.port);

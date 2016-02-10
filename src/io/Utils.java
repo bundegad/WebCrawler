@@ -183,6 +183,7 @@ public class Utils {
 				numBytes++;
 			}
 			
+			
 			body = new byte[numBytes];
 			System.arraycopy(builder.toString().getBytes(), 0, body, 0, numBytes);
 
