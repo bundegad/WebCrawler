@@ -5,16 +5,13 @@ import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import http.HTTPUtils;
 import synchronization.ThreadPoolManager;
 
 public class CrawlerAnalyzer implements Runnable {
-
-	//private static final Pattern LINK_TAG_PATTERN = Pattern.compile("(src|href)\\s*=\\s*(\"[^\"]+\"|'[^']+')");
 	
-	private static final Pattern IMG_OR_VIDEO_TAG_PATTERN = Pattern.compile("<(img|source|script).* (src)\\s*=\\s*(\"[^\"]+\"|'[^']+')");
-	private static final Pattern A_OR_LINK_TAG_PATTERN = Pattern.compile("<(a|link).* (href)\\s*=\\s*(\"[^\"]+\"|'[^']+')");
+	private static final Pattern IMG_TAG_PATTERN = Pattern.compile("(?i)<(img)\\s[^>]*(src)\\s*=\\s*(\"[^\"]+\"|'[^']+')");
+	private static final Pattern A_TAG_PATTERN = Pattern.compile("(?i)<(a)\\s[^>]*(href)\\s*=\\s*(\"[^\"]+\"|'[^']+')");
 	
 	private String fileContent;
 	private String host;
@@ -26,13 +23,13 @@ public class CrawlerAnalyzer implements Runnable {
 		this.path = path;
 	}
 
-
 	@Override
 	public void run() {
-
+		String fileContentNoComments = fileContent.replaceAll("(?s)<!--(.*?)-->", "");
+		System.out.println(fileContentNoComments);
 		System.out.println(String.format("Analyzing file from host : %s, and path : %s", host, path));
-
-		Matcher matcher1 = IMG_OR_VIDEO_TAG_PATTERN.matcher(fileContent);
+	
+		Matcher matcher1 = IMG_TAG_PATTERN.matcher(fileContentNoComments);
 		while (matcher1.find()) {
 			try {
 				String url = matcher1.group(3).replace("\"", "").replace("\'", "");
@@ -50,9 +47,11 @@ public class CrawlerAnalyzer implements Runnable {
 			} 
 
 		}
-		Matcher matcher2 = A_OR_LINK_TAG_PATTERN.matcher(fileContent);
+		Matcher matcher2 = A_TAG_PATTERN.matcher(fileContentNoComments);
 		while (matcher2.find()) {
 			try {
+				String help = matcher2.group(3);
+				System.out.println(help);
 				String url = matcher2.group(3).replace("\"", "").replace("\'", "");
 				System.out.println("url that regex found is LINK " + url);
 				url = getAbsoulutePath(url);
