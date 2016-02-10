@@ -11,7 +11,6 @@ import synchronization.ThreadPoolManager;
 
 public class CrawlerAnalyzer implements Runnable {
 
-	//private static final Pattern LINK_TAG_PATTERN = Pattern.compile("(src|href)\\s*=\\s*(\"[^\"]+\"|'[^']+')");
 	
 	private static final Pattern IMG_OR_VIDEO_TAG_PATTERN = Pattern.compile("<(img|source|script).* (src)\\s*=\\s*(\"[^\"]+\"|'[^']+')");
 	private static final Pattern A_OR_LINK_TAG_PATTERN = Pattern.compile("<(a|link).* (href)\\s*=\\s*(\"[^\"]+\"|'[^']+')");
@@ -54,7 +53,6 @@ public class CrawlerAnalyzer implements Runnable {
 		while (matcher2.find()) {
 			try {
 				String url = matcher2.group(3).replace("\"", "").replace("\'", "");
-				System.out.println("url that regex found is LINK " + url);
 				url = getAbsoulutePath(url);
 				if (url == null) {
 					System.out.println("found unsupported url schema for url " + url);

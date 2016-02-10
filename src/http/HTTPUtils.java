@@ -15,7 +15,7 @@ public class HTTPUtils {
 
 	public static HTTPRequest parseRawHttpRequest(InputStream in) throws ServerException {
 
-		HttpParsedMessageObject httpMessageObject = io.Utils.readHttpMessageFromInputStream(in);
+		HttpParsedMessageObject httpMessageObject = io.Utils.readHttpMessageFromInputStream(in, true);
 
 		//Parse first line
 		Pattern firstLinePattern = Pattern.compile(HTTPConstants.REQUEST_FIRSTLINE_PATTEN_STRING);
@@ -59,9 +59,9 @@ public class HTTPUtils {
 		return request;
 	}
 
-	public static HTTPResponse parseRawHttpResponse(InputStream in) throws ServerException {
+	public static HTTPResponse parseRawHttpResponse(InputStream in, boolean shouldReadBody) throws ServerException {
 
-		HttpParsedMessageObject httpMessageObject = io.Utils.readHttpMessageFromInputStream(in);
+		HttpParsedMessageObject httpMessageObject = io.Utils.readHttpMessageFromInputStream(in, shouldReadBody);
 		
 		//clean first line
 		String firstLine = removeSpaces(httpMessageObject.firstLine);

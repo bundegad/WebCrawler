@@ -98,7 +98,8 @@ public class CrawlerDownloader implements Runnable {
 
 
 			//Parse response.
-			HTTPResponse response = HTTPUtils.parseRawHttpResponse(socket.getInputStream());
+			boolean shouldReadBody = request.type != HTTPRequestType.HEAD;
+			HTTPResponse response = HTTPUtils.parseRawHttpResponse(socket.getInputStream(), shouldReadBody);
 
 			//Handle response
 			if (response != null) {
@@ -134,17 +135,16 @@ public class CrawlerDownloader implements Runnable {
 		
 		//Write the request
 		io.Utils.writeOutputStream(socket.getOutputStream(), request.toHTTPString().getBytes());
-		System.out.println(request.toHTTPString());
 
 
 		//Parse response.
-		HTTPResponse response = HTTPUtils.parseRawHttpResponse(socket.getInputStream());
+		boolean shouldReadBody = request.type != HTTPRequestType.HEAD;
+		HTTPResponse response = HTTPUtils.parseRawHttpResponse(socket.getInputStream(), shouldReadBody);
 		
 		if (response.code != HTTPResponseCode.OK) {
 			System.out.println("Could not get robot.txt");
 		}
 		
-		System.out.println(response.toString());
 		CrawlerDownloader redirectDownloader = new CrawlerDownloader(this.host, this.path, this.port);
 		ThreadPoolManager poolManager = ThreadPoolManager.getInstance();
 		poolManager.get(CrawlerExecuter.DONWLOADERS_POOL_KEY).execute(redirectDownloader);
@@ -175,6 +175,7 @@ public class CrawlerDownloader implements Runnable {
 			return;
 		}
 
+		
 		//Handle OK
 		int contentLength =  Integer.parseInt(response.getHeader(HTTPConstants.HTTP_CONTENT_LENGTH_KEY));
 
@@ -214,7 +215,6 @@ public class CrawlerDownloader implements Runnable {
 
 		return request;
 	}
-
 
 	private HashMap<String, String> getHeaders() {
 		HashMap<String, String> headers = new HashMap<>();

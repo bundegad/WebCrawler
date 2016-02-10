@@ -20,6 +20,7 @@ import java.util.regex.Pattern;
 
 import javax.imageio.ImageIO;
 
+
 import exceptions.ServerException;
 import http.FileType;
 import http.HTTPConstants;
@@ -107,7 +108,7 @@ public class Utils {
 		}
 	} 
 	
-	public static HTTPUtils.HttpParsedMessageObject readHttpMessageFromInputStream(InputStream in) throws ServerException {
+	public static HTTPUtils.HttpParsedMessageObject readHttpMessageFromInputStream(InputStream in, boolean shouldReadBody) throws ServerException {
 		
 		BufferedReader inputStream = new BufferedReader(new InputStreamReader(in));
 		String firstLine = null;
@@ -129,8 +130,8 @@ public class Utils {
 				matcher = pattern.matcher(line);
 				if (matcher.matches()) {
 					headers.put(matcher.group(1).toLowerCase().trim(), matcher.group(2).toLowerCase().trim());
-					isChunked |= matcher.group(1).trim().equals(HTTPConstants.HTTP_TRANSFER_ENCODING) 
-							&& matcher.group(2).equals(HTTP_CHUNKED_KEY);
+					isChunked |= matcher.group(1).toLowerCase().trim().equals(HTTPConstants.HTTP_TRANSFER_ENCODING) 
+							&& matcher.group(2).toLowerCase().trim().equals(HTTP_CHUNKED_KEY);
 				} else {
 					throw new ServerException(HTTPResponseCode.BAD_REQUEST);
 				}
@@ -138,10 +139,34 @@ public class Utils {
 				line = inputStream.readLine();
 			}
 			
+
+			if (!shouldReadBody) {
+				headers.put(HTTPConstants.HTTP_CONTENT_LENGTH_KEY, "0");
+				return new HttpParsedMessageObject(firstLine, headers, body);
+			}
+			
 			//Read chunked body
 			StringBuilder builder = new StringBuilder();
 			if (isChunked) {
-				System.out.println("CHUNKED");
+				int totalLength = 0;
+				int chunkLength = Integer.parseInt(inputStream.readLine(), 16);
+				
+				while (chunkLength != 0) {
+					long numBytes = 0;
+					while (numBytes < chunkLength) {
+						builder.append((char) inputStream.read());
+						numBytes++;
+					}
+					
+					totalLength += chunkLength;
+					inputStream.readLine();
+					chunkLength =  Integer.parseInt(inputStream.readLine(), 16);
+				}
+				
+				headers.put(HTTPConstants.HTTP_CONTENT_LENGTH_KEY, Integer.toString(totalLength));
+				body = new byte[totalLength];
+				System.arraycopy(builder.toString().getBytes(), 0, body, 0, totalLength);
+				return new HttpParsedMessageObject(firstLine, headers, body);
 			}
 			
 			
@@ -153,7 +178,7 @@ public class Utils {
 			}
 			
 			int numBytes = 0;
-			while (numBytes < contentLength && inputStream.ready()) {
+			while (numBytes < contentLength) {
 				builder.append((char) inputStream.read());
 				numBytes++;
 			}

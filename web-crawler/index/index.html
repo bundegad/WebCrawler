@@ -61,7 +61,7 @@
 			</div>
 			<div class="row">
 				<ul class="list-group table-container">
-					@for{recents => <li class="list-group-item table-item">@{name} <a class="btn btn-success" href="@{href}">View</a></li>@for}
+					@for{recents => <li class="list-group-item table-item"><div>@{name}</div><a class="btn btn-success" href="@{href}">View</a></li>@for}
 				</ul>
 			</div>
 		</div>
@@ -72,6 +72,10 @@
 		var errorMessage = $(".form-error-message");
 		if (errorMessage.html().length > 0) {
 			errorMessage.show();
+		}
+
+		if ($(".table-item div").length > 20) {
+			$(".table-item div").text = $(".table-item div").text.substring(0,20);
 		}
 
 	</script>
