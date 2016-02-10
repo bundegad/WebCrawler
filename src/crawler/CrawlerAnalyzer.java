@@ -13,8 +13,8 @@ public class CrawlerAnalyzer implements Runnable {
 
 	//private static final Pattern LINK_TAG_PATTERN = Pattern.compile("(src|href)\\s*=\\s*(\"[^\"]+\"|'[^']+')");
 	
-	private static final Pattern IMG_OR_VIDEO_TAG_PATTERN = Pattern.compile("<(img|source|script) (src)\\s*=\\s*(\"[^\"]+\"|'[^']+')");
-	private static final Pattern A_OR_LINK_TAG_PATTERN = Pattern.compile("<(a|link) (href)\\s*=\\s*(\"[^\"]+\"|'[^']+')");
+	private static final Pattern IMG_OR_VIDEO_TAG_PATTERN = Pattern.compile("<(img|source|script).* (src)\\s*=\\s*(\"[^\"]+\"|'[^']+')");
+	private static final Pattern A_OR_LINK_TAG_PATTERN = Pattern.compile("<(a|link).* (href)\\s*=\\s*(\"[^\"]+\"|'[^']+')");
 	
 	private String fileContent;
 	private String host;
