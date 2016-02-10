@@ -53,9 +53,6 @@ public class Utils {
 
 	public static final int CHUNKED_SIZE = 1024;
 	
-	
-
-
 
 	public static String readFile(String file) throws IOException {
 
@@ -144,8 +141,9 @@ public class Utils {
 			//Read chunked body
 			StringBuilder builder = new StringBuilder();
 			if (isChunked) {
-				
+				System.out.println("CHUNKED");
 			}
+			
 			
 			int contentLength = 0;
 			if (headers.containsKey(HTTP_CONTENT_LENGTH_KEY)) {
@@ -155,19 +153,19 @@ public class Utils {
 			}
 			
 			int numBytes = 0;
-			while (numBytes < contentLength) {
+			while (numBytes < contentLength && inputStream.ready()) {
 				builder.append((char) inputStream.read());
 				numBytes++;
 			}
 			
 			body = new byte[numBytes];
-			
 			System.arraycopy(builder.toString().getBytes(), 0, body, 0, numBytes);
 
 			
 		} catch (IOException e) {
 			throw new ServerException(HTTPResponseCode.INTERNAL_ERROR);
 		} 
+		
 		return new HttpParsedMessageObject(firstLine, headers, body);
 	}
 	
