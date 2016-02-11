@@ -15,7 +15,6 @@ public class CrawlerExecutionRecord {
 	public final String domain;
 	public final boolean isFullTcp;
 	public final boolean isDisrespectRobot;
-	private String disrespectPath;
 	private final ArrayList<Integer> ports;
 	private final ArrayList<String> domains;
 	private final String dateTime;
@@ -39,6 +38,8 @@ public class CrawlerExecutionRecord {
 	private int numExternalLinks;
 
 	private ArrayList<String> resources;
+	private ArrayList<String> disallowList;
+	private ArrayList<String> allowList;
 
 	public CrawlerExecutionRecord(String domain, boolean isFullTcp, boolean isDisrespectRobot) {
 		this.domain = domain;
@@ -49,10 +50,18 @@ public class CrawlerExecutionRecord {
 		this.dateTime = new Date(System.currentTimeMillis()).toString();
 		this.id  = UUID.randomUUID().toString();
 		this.resources = new ArrayList<>();
+		this.disallowList = new ArrayList<>();
+		this.allowList = new ArrayList<>();
 	}
 	
-	public void addDisrespectPath(String path) {
-		this.disrespectPath = path;
+	public synchronized void addDisallowPath(String domain, String path) {
+		String disallow = String.format("%s%s", domain, path);
+		this.disallowList.add(disallow);
+	}
+	
+	public synchronized void addAllowPath(String domain, String path) {
+		String allow = String.format("%s%s", domain, path);
+		this.allowList.add(allow);
 	}
 
 	public String getId() {
@@ -138,14 +147,22 @@ public class CrawlerExecutionRecord {
 	}
 
 	private boolean hasResouce(String resource) {
+		int indexOfSeperator = resource.indexOf('?');
+		resource = indexOfSeperator == -1 ? resource : resource.substring(0, indexOfSeperator);
 		return resources.contains(resource);
 	}
 	
 	public synchronized  boolean shouldAddResource(String resource) {
-		return !hasResouce(resource) && (disrespectPath == null || resource.startsWith(disrespectPath));
+		return !hasResouce(resource) && shouldAllow(resource);
 	}
 	
-	public synchronized void addResource(String resource) {
+	
+	public synchronized void addResource(String resource) {	
+		int indexOfSeperator = resource.indexOf('?');
+		resource = indexOfSeperator == -1 ? resource : resource.substring(0, indexOfSeperator);
+		
+		
+		System.out.println("Adding resource " + resource);
 		this.resources.add(resource);
 	}
 	
@@ -167,4 +184,22 @@ public class CrawlerExecutionRecord {
 		sumRTT += rtt;
 		numRTT++;
 	}
+	
+	public boolean shouldAllow(String resource) {
+		
+		for (String path : allowList) {
+			if (resource.startsWith(path)) {
+				return true;
+			}
+		}
+		
+		for (String path : disallowList) {
+			if (resource.startsWith(path)) {
+				return false;
+			}
+		}
+		
+		return true;
+	}
 }
+

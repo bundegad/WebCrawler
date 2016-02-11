@@ -31,6 +31,7 @@ public class HTTPConstants {
 	public static final String HTTP_HOST_KEY = "host";
 	
 	public static final String HTTP_LOCATION_KEY = "location";
+	public static final String HTTP_USER_AGENT_KEY = "user-agent";
 	
 	public static final String HTTP_CONTENT_MESSAGE_TYPE = "message/http";
 	public static final String HTTP_TRANSFER_ENCODING = "transfer-encoding";
@@ -38,6 +39,9 @@ public class HTTPConstants {
 	public static final String HTTP_CHUNKED_KEY_YES = "yes";
 	
 	public static final String HTTP_ON_PARAM_VALUE =  "on"; 
+	
+	public static final String DISALLOW = "disallow";
+	public static final String ALLOW = "allow";
 	
 	public static final int SOCKET_DEFAULT_TIMEOUT_MS = 15000;
 	public static final  int DEFAULT_PORT = 80;

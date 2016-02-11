@@ -54,6 +54,8 @@ public class Utils {
 
 	public static final int CHUNKED_SIZE = 1024;
 	
+	private static final int MAX_ATTEMPTS = 15;
+	
 
 	public static String readFile(String file) throws IOException {
 
@@ -145,52 +147,87 @@ public class Utils {
 			}
 			
 			//Read chunked body
-			StringBuilder builder = new StringBuilder();
 			if (isChunked) {
-				int totalLength = 0;
-				int chunkLength = Integer.parseInt(inputStream.readLine(), 16);
-				
-				while (chunkLength != 0) {
-					long numBytes = 0;
-					while (numBytes < chunkLength) {
-						builder.append((char) inputStream.read());
-						numBytes++;
-					}
-					
-					totalLength += chunkLength;
-					inputStream.readLine();
-					chunkLength =  Integer.parseInt(inputStream.readLine(), 16);
-				}
-				
-				headers.put(HTTPConstants.HTTP_CONTENT_LENGTH_KEY, Integer.toString(totalLength));
-				body = new byte[totalLength];
-				System.arraycopy(builder.toString().getBytes(), 0, body, 0, totalLength);
-				return new HttpParsedMessageObject(firstLine, headers, body);
+				return readChunkedData(inputStream, firstLine, headers);
 			}
 			
 			
-			int contentLength = 0;
-			if (headers.containsKey(HTTP_CONTENT_LENGTH_KEY)) {
-				contentLength = Integer.parseInt(headers.get(HTTPConstants.HTTP_CONTENT_LENGTH_KEY));
-			} else {
-				headers.put(HTTPConstants.HTTP_CONTENT_LENGTH_KEY, "0");
-			}
-			
-			int numBytes = 0;
-			while (numBytes < contentLength) {
-				builder.append((char) inputStream.read());
-				numBytes++;
-			}
-			
-			
-			body = new byte[numBytes];
-			System.arraycopy(builder.toString().getBytes(), 0, body, 0, numBytes);
+			return readHttpData(inputStream, firstLine, headers);
 
 			
 		} catch (IOException e) {
 			throw new ServerException(HTTPResponseCode.INTERNAL_ERROR);
 		} 
 		
+	}
+	
+	public static HttpParsedMessageObject readChunkedData(BufferedReader inputStream, String firstLine,
+			HashMap<String, String> headers) throws NumberFormatException, IOException {
+		
+		StringBuilder builder = new StringBuilder();
+		byte[] body = null;
+		int totalLength = 0;
+		int chunkLength = Integer.parseInt(inputStream.readLine(), 16);
+		
+		while (chunkLength != 0) {
+			long numBytes = 0;
+			while (numBytes < chunkLength) {
+				builder.append((char) inputStream.read());
+				numBytes++;
+			}
+			
+			totalLength += chunkLength;
+			inputStream.readLine();
+			chunkLength =  Integer.parseInt(inputStream.readLine(), 16);
+		}
+		
+		headers.put(HTTPConstants.HTTP_CONTENT_LENGTH_KEY, Integer.toString(totalLength));
+		body = new byte[totalLength];
+		System.arraycopy(builder.toString().getBytes(), 0, body, 0, totalLength);
+		return new HttpParsedMessageObject(firstLine, headers, body);
+	}
+	
+	public static HttpParsedMessageObject readHttpData(BufferedReader inputStream, String firstLine,
+			HashMap<String, String> headers) throws IOException {
+		
+		//Read chunked body
+		StringBuilder builder = new StringBuilder();
+		byte[] body = null;
+		
+		int contentLength = 0;
+		if (headers.containsKey(HTTP_CONTENT_LENGTH_KEY)) {
+			contentLength = Integer.parseInt(headers.get(HTTPConstants.HTTP_CONTENT_LENGTH_KEY));
+		} else {
+			headers.put(HTTPConstants.HTTP_CONTENT_LENGTH_KEY, "0");
+		}
+		
+		int numBytes = 0;
+		int attempts = 0;
+		while (numBytes < contentLength) {
+			
+			try {
+				builder.append((char) inputStream.read());
+				numBytes++;
+			} catch (IOException e) {
+				
+				if (attempts < MAX_ATTEMPTS) {
+					attempts++;
+					try {
+						Thread.sleep(15);
+					} catch (InterruptedException e1) {
+						System.out.println("Could not sleep during timeout");
+					}
+					continue;
+				}
+				
+				break;
+			}
+			
+		}
+		
+		
+		body = new byte[numBytes];
+		System.arraycopy(builder.toString().getBytes(), 0, body, 0, numBytes);
 		return new HttpParsedMessageObject(firstLine, headers, body);
 	}
 	
@@ -199,9 +236,8 @@ public class Utils {
 		try {
 			writer.write(content);
 			writer.flush();
-			//writer.close();//remove
 		} catch (IOException e) {
-			//TODO - Add exception
+			System.out.println("Could not write to output stream");
 		}
 
 	}

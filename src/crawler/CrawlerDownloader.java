@@ -5,6 +5,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URISyntaxException;
+import java.net.URLDecoder;
 import java.util.HashMap;
 
 import exceptions.ServerException;
@@ -66,7 +67,6 @@ public class CrawlerDownloader implements Runnable {
 		}
 
 		resourceType = ResourceType.PAGE;
-		System.out.println("Path is " + path + "and resource type is " + resourceType + "==========");
 	}
 
 
@@ -115,7 +115,6 @@ public class CrawlerDownloader implements Runnable {
 		} catch (Exception e) {
 			System.out.println(String.format("Error, could not get repsonse from Host: %s,"
 					+ " on port: %s, and path: %s and message: %s", host, port, path, e.getMessage()));
-			e.printStackTrace();
 		} finally {
 
 			if (socket != null) {
@@ -144,13 +143,61 @@ public class CrawlerDownloader implements Runnable {
 		HTTPResponse response = HTTPUtils.parseRawHttpResponse(socket.getInputStream(), shouldReadBody);
 		
 		if (response.code != HTTPResponseCode.OK) {
-			System.out.println("Could not get robot.txt");
+			System.out.println("Could not get robots.txt");
 		}
+		
+		if (response.fileContent != null) {
+			String robotsContent = new String(response.fileContent, "UTF-8");
+			parseRobots(robotsContent);
+		}
+		
+		String fullPath = String.format("%s%s", this.host, this.path);
+		if (!record.shouldAllow(fullPath)) {
+			System.out.println("Origin path is disallowed");
+			return;
+		}
+		
+		System.out.println("Origin path is allowed");
 		
 		CrawlerDownloader redirectDownloader = new CrawlerDownloader(this.host, this.path, this.port);
 		ThreadPoolManager poolManager = ThreadPoolManager.getInstance();
 		poolManager.get(CrawlerExecuter.DONWLOADERS_POOL_KEY).execute(redirectDownloader);
 		
+	}
+
+	private void parseRobots(String robotsContent) {
+		
+		String[] robotsContentLines = robotsContent.split("\n");
+		boolean shouldIgnore = false;
+		for (String line : robotsContentLines) {
+			
+			String[] parts = line.split(":");
+			if (parts.length != 2) {
+				continue;
+			}
+			
+			String key  = parts[0].trim().toLowerCase();
+			String value = parts[1].trim().toLowerCase();
+			
+			if (key.equals(HTTPConstants.HTTP_USER_AGENT_KEY)) {
+				shouldIgnore = !value.equals("*");
+				continue;
+			}
+			
+			if (shouldIgnore) {
+				continue;
+			}
+			
+			if (key.equals(HTTPConstants.ALLOW)) {
+				record.addAllowPath(this.host, value);
+				continue;
+			} 
+			
+			if (key.equals(HTTPConstants.DISALLOW)) {
+				record.addDisallowPath(this.host, value);
+			}
+			
+		}
 	}
 
 	private void handleResponse(HTTPResponse response) throws UnsupportedEncodingException, URISyntaxException {
@@ -163,11 +210,16 @@ public class CrawlerDownloader implements Runnable {
 			if (redirectPath == null) {
 				return;
 			}
-
+			
 			if (redirectPath.startsWith("/")) {
 				redirectPath = String.format("%s%s", host, redirectPath);
 			}
-
+			
+			redirectPath = URLDecoder.decode(redirectPath, "UTF-8");
+			if (!record.shouldAddResource(redirectPath)) {
+				System.out.println("ignoring resource " + redirectPath);
+				return;
+			}
 
 			redirect(redirectPath);
 			return;
@@ -231,12 +283,16 @@ public class CrawlerDownloader implements Runnable {
 		//parsed url then create downloader
 		HTTPUtils.URLParsedObject urlParsedObject = HTTPUtils.parsedRawURL(url);
 		if (urlParsedObject == null) {
-			System.out.println("Not supported http schema,  stopping crawler");
+			System.out.println("Not supported http schema");
 			return;
 		}
+		
+		
 
 		if (!HTTPUtils.equalDomains(this.host, urlParsedObject.host)) {
 			System.out.println("domain not equal ignoring redirect");
+			record.addDomain(urlParsedObject.host);
+			return;
 		}
 
 		CrawlerDownloader redirectDownloader  = new CrawlerDownloader(urlParsedObject.host,
@@ -261,7 +317,6 @@ public class CrawlerDownloader implements Runnable {
 
 	private void sendToAnalyzer(String content) {
 		System.out.println("Sending to anyalyzer content for path " + path);
-		CrawlerManager.getInstance().addToBuffer();
 		CrawlerAnalyzer redirectDownloader  = new CrawlerAnalyzer(host, path, content);
 		ThreadPoolManager poolManager = ThreadPoolManager.getInstance();
 		poolManager.get(CrawlerExecuter.ANALYZERS_POOL_KEY).execute(redirectDownloader);

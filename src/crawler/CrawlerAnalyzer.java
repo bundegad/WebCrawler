@@ -64,7 +64,7 @@ public class CrawlerAnalyzer implements Runnable {
 
 		}
 
-
+		CrawlerManager.getInstance().addToBuffer();
 		System.out.println("finish analyzer");	
 	}
 
@@ -119,13 +119,8 @@ public class CrawlerAnalyzer implements Runnable {
 	private void foundLink(String url) throws URISyntaxException {
 		
 		CrawlerExecutionRecord record = CrawlerManager.getInstance().getExecutionRecord();	
-		if (!record.shouldAddResource(url)) {
-			System.out.println("ignoring resource " + url);
-			return;
-		}
 
 		if (!isInternal(url)) {
-			System.out.println("adding external link " + url);
 			record.addExternalLink();
 			String domain  = extractDomain(url);
 			record.addDomain(domain);
@@ -133,8 +128,13 @@ public class CrawlerAnalyzer implements Runnable {
 		}
 		
 
-		System.out.println("adding internal link " + url);
 		record.addInternalLink();
+		
+		if (!record.shouldAddResource(url)) {
+			System.out.println("ignoring resource to download: " + url);
+			return;
+		}
+		
 		HTTPUtils.URLParsedObject parsedObject  =  HTTPUtils.parsedRawURL(url);
 		record.addResource(url);
 		CrawlerDownloader downloader = new CrawlerDownloader(parsedObject.host, parsedObject.path, parsedObject.port);

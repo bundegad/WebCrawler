@@ -18,8 +18,8 @@ public class CrawlerManager {
 	public enum State {
 		WAITING, RUNNING, STOPPING
 	}
-	private static final  double BUFFER_UNIT = 0.01;
-	private static final  double SMALL_BUFFER_UNIT = 0.0001;
+	private static final  double BUFFER_UNIT = 0.1;
+	private static final  double SMALL_BUFFER_UNIT = 0.001;
 	private static CrawlerManager manager;
 	
 	private String directory;
@@ -98,7 +98,6 @@ public class CrawlerManager {
 			throw new ServerException(HTTPResponseCode.INTERNAL_ERROR);
 		}
 		
-		createFile();
 		state = State.STOPPING;
 		progress = 0;
 		executor.stop();
@@ -198,6 +197,8 @@ public class CrawlerManager {
 	}
 	
 	private String removeQuery(String file) {
-		return file.replace("\\?.*", "");
+		int indexOfSeperator = file.indexOf('?');
+		file = indexOfSeperator == -1 ? file : file.substring(0, indexOfSeperator);
+		return file;
 	}
 }

@@ -13,7 +13,7 @@ public class CrawlerTcpScanner implements Runnable {
 		void onFoundPort(int port);
 	}
 	
-	public static  final int MAX_PORT = 500; // should change to 65553.
+	public static  final int MAX_PORT = 65553;
 	private static final int TIMOEOUT = 200;
 	
 	private final int startPort;
@@ -48,10 +48,9 @@ public class CrawlerTcpScanner implements Runnable {
 				socket.close();
 				
 			} catch (IOException e) {
-//				System.out.println(String.format("could not create socket, message: %s, port: %s", e.getMessage(), currentPort));
 			} finally {
 				currentPort++;
-				CrawlerManager.getInstance().addToBuffer();
+				CrawlerManager.getInstance().addSmallToBuffer();
 			}	
 		}
 			
@@ -61,7 +60,6 @@ public class CrawlerTcpScanner implements Runnable {
 		
 		 try {
 		      InetAddress ipaddress = InetAddress.getByName(domain);
-		      System.out.println("IP address: " + ipaddress.getHostAddress());
 		 } catch ( UnknownHostException e ) {
 		      System.out.println("Could not find IP address for: " + domain);
 		      return false;

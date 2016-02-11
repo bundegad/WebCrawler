@@ -72,6 +72,7 @@ public class CrawlerExecuter {
 	
 	private void scanPorts() {
 		
+		System.out.println("Start port scanning");
 		ThreadPoolManager manager = ThreadPoolManager.getInstance();
 		manager.bind(new String[] {SCANNERS_POOL_KEY}, ON_PORT_SCANNED_CB);
 		ThreadPool<Runnable> scannersPool = manager.get(SCANNERS_POOL_KEY);
@@ -128,6 +129,7 @@ public class CrawlerExecuter {
 
 	private void startCrawling() throws URISyntaxException {
 		
+		System.out.println("Start Crawling");
 		ThreadPoolManager manager = ThreadPoolManager.getInstance();
 		manager.bind(new String[] {ANALYZERS_POOL_KEY, DONWLOADERS_POOL_KEY}, ON_DOWNLOADED_AND_ANALYZED_CB);
 		
