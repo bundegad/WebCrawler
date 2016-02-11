@@ -183,7 +183,7 @@ public class CrawlerDownloader implements Runnable {
 
 		switch(this.resourceType) {
 		case IMAGE:
-			System.out.println("add an image");
+			System.out.println("add an image with size:  "  + contentLength);
 			CrawlerManager.getInstance().getExecutionRecord().addImage(contentLength);
 			break;
 		case VIDEO:
@@ -261,6 +261,7 @@ public class CrawlerDownloader implements Runnable {
 
 	private void sendToAnalyzer(String content) {
 		System.out.println("Sending to anyalyzer content for path " + path);
+		CrawlerManager.getInstance().addToBuffer();
 		CrawlerAnalyzer redirectDownloader  = new CrawlerAnalyzer(host, path, content);
 		ThreadPoolManager poolManager = ThreadPoolManager.getInstance();
 		poolManager.get(CrawlerExecuter.ANALYZERS_POOL_KEY).execute(redirectDownloader);

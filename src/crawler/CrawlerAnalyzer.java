@@ -35,13 +35,11 @@ public class CrawlerAnalyzer implements Runnable {
 		while (matcher1.find()) {
 			try {
 				String url = matcher1.group(3).replace("\"", "").replace("\'", "");
-				System.out.println("url that regex found is " + url);
 				url = getAbsoulutePath(url);
 				if (url == null) {
 					System.out.println("found unsupported url schema for url " + url);
 					continue;
 				}
-				System.out.println("found url " + url);
 
 				foundLink(url);
 			} catch (URISyntaxException | UnsupportedEncodingException e) {
@@ -52,15 +50,12 @@ public class CrawlerAnalyzer implements Runnable {
 		Matcher matcher2 = A_TAG_PATTERN.matcher(fileContentNoComments);
 		while (matcher2.find()) {
 			try {
-				String help = matcher2.group(3);
-				System.out.println(help);
 				String url = matcher2.group(3).replace("\"", "").replace("\'", "");
 				url = getAbsoulutePath(url);
 				if (url == null) {
 					System.out.println("found unsupported url schema for url " + url);
 					continue;
 				}
-				System.out.println("found url " + url);
 
 				foundLink(url);
 			} catch (URISyntaxException | UnsupportedEncodingException e) {
@@ -78,31 +73,40 @@ public class CrawlerAnalyzer implements Runnable {
 		if (url.startsWith("/")) {
 			String absoluteInternalUrl = String.format("%s%s", host, url);
 			absoluteInternalUrl = URLDecoder.decode(absoluteInternalUrl, "UTF-8");
-			return absoluteInternalUrl;
+			return cleanWWW(absoluteInternalUrl);
 		}
 
-		HTTPUtils.URLParsedObject parseObj = HTTPUtils.parsedRawURL(url);
 		
 		//Check if Url starts with https and is not supported
-		if (parseObj == null) {
+		if (url.startsWith("https://")) {
 			
 			//Remove https
 			url = url.substring(8);
 			if (!isInternal(url)) {
-				String domain  = extractDomain(url);
+				String domain  = cleanWWW(extractDomain(url));
 				CrawlerManager.getInstance().getExecutionRecord().addDomain(domain);
-				return null;
+				System.out.println("adding domain for " + url);
 			}
+			
+			return null;
 		}
-		 if (parseObj.host.isEmpty()) {
-			 return  String.format("%s%s%s", host, path, url);
-		 }
-		 
-		String parsedUrl =  String.format("%s%s", parseObj.host, parseObj.path);
-		return parsedUrl;
+		
+		if (url.startsWith("http://")) {
+			url = url.substring(7);
+		}
+		
+		if (!url.startsWith("www.")) {
+			String path = this.path.endsWith("/") ? this.path : this.path + "/";
+			return cleanWWW(String.format("%s%s%s",host, path, url));
+		}
+		
+		
+		return cleanWWW(url);
 	}
 
 	private boolean isInternal(String url) throws URISyntaxException {
+		int indexofSpliter = url.indexOf("/");
+		url = indexofSpliter == -1 ? url : url.substring(0, indexofSpliter);
 		return HTTPUtils.equalDomains(HTTPUtils.parsedRawURL(url).host, host);
 
 	}
@@ -116,10 +120,12 @@ public class CrawlerAnalyzer implements Runnable {
 		
 		CrawlerExecutionRecord record = CrawlerManager.getInstance().getExecutionRecord();	
 		if (!record.shouldAddResource(url)) {
+			System.out.println("ignoring resource " + url);
 			return;
 		}
 
 		if (!isInternal(url)) {
+			System.out.println("adding external link " + url);
 			record.addExternalLink();
 			String domain  = extractDomain(url);
 			record.addDomain(domain);
@@ -127,12 +133,17 @@ public class CrawlerAnalyzer implements Runnable {
 		}
 		
 
+		System.out.println("adding internal link " + url);
 		record.addInternalLink();
 		HTTPUtils.URLParsedObject parsedObject  =  HTTPUtils.parsedRawURL(url);
-		record.addResource(parsedObject.path);
+		record.addResource(url);
 		CrawlerDownloader downloader = new CrawlerDownloader(parsedObject.host, parsedObject.path, parsedObject.port);
 		ThreadPoolManager manager = ThreadPoolManager.getInstance();
 		manager.get(CrawlerExecuter.DONWLOADERS_POOL_KEY).execute(downloader);
 
+	}
+	
+	private String cleanWWW(String url) {
+		return url.startsWith("www.") ? url.substring(4) : url;
 	}
 }

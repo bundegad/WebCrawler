@@ -18,7 +18,8 @@ public class CrawlerManager {
 	public enum State {
 		WAITING, RUNNING, STOPPING
 	}
-	
+	private static final  double BUFFER_UNIT = 0.01;
+	private static final  double SMALL_BUFFER_UNIT = 0.0001;
 	private static CrawlerManager manager;
 	
 	private String directory;
@@ -32,6 +33,8 @@ public class CrawlerManager {
 	
 	private CrawlerExecutionRecord executionRecord;
 	private CrawlerExecuter executor;
+
+	private double setProgressBuffer;
 	
 	public static  CrawlerManager getInstance() {
 		if (manager == null) {
@@ -114,6 +117,20 @@ public class CrawlerManager {
 	}
 	public synchronized double getProgress() {
 		return progress;
+	}
+	
+	public synchronized void setProgressBuffer(double progress) {
+		this.setProgressBuffer = progress;
+	}
+	
+	public synchronized void addToBuffer() {
+		this.progress += BUFFER_UNIT;
+		this.progress = this.progress > this.setProgressBuffer ? this.setProgressBuffer : this.progress;
+	}
+	
+	public synchronized void addSmallToBuffer() {
+		this.progress += SMALL_BUFFER_UNIT;
+		this.progress = this.progress > this.setProgressBuffer ? this.setProgressBuffer : this.progress;
 	}
 	
 	public CrawlerExecutionRecord getExecutionRecord() {

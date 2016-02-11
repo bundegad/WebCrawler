@@ -141,7 +141,6 @@ public class Utils {
 			
 
 			if (!shouldReadBody) {
-				headers.put(HTTPConstants.HTTP_CONTENT_LENGTH_KEY, "0");
 				return new HttpParsedMessageObject(firstLine, headers, body);
 			}
 			

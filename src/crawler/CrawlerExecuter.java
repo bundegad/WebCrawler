@@ -23,6 +23,7 @@ public class CrawlerExecuter {
 			System.out.println("finished port scanning");
 			ThreadPoolManager.getInstance().get(SCANNERS_POOL_KEY).stop();
 			CrawlerManager.getInstance().setProgress(40);
+			CrawlerManager.getInstance().setProgressBuffer(95);
 			try {
 				startCrawling();
 			} catch (URISyntaxException e) {
@@ -61,8 +62,10 @@ public class CrawlerExecuter {
 
 	public void start() throws URISyntaxException {
 		if (record.isFullTcp) {
+			CrawlerManager.getInstance().setProgressBuffer(40);
 			scanPorts();
 		} else {
+			CrawlerManager.getInstance().setProgressBuffer(85);
 			startCrawling();
 		}
 	}
@@ -87,6 +90,19 @@ public class CrawlerExecuter {
 		int numPortsPerScanner = CrawlerTcpScanner.MAX_PORT / size;
 		int startPort = 0;
 		int currentScanner = 0;
+		String host = record.domain;
+		if (host.startsWith("https://")) {
+			host = host.substring(8);
+		} else if (host.startsWith("http://")) {
+			host = host.substring(7);
+		}
+		
+		if (!host.startsWith("www.")) {
+			host = "www." + host;
+		}
+		
+		int indexOfSeperator = host.indexOf("/");
+		host = indexOfSeperator == -1 ? host : host.substring(0, indexOfSeperator);
 		
 		while (startPort <= CrawlerTcpScanner.MAX_PORT) {
 			
@@ -95,12 +111,12 @@ public class CrawlerExecuter {
 				@Override
 				public void onFoundPort(int port) {
 					System.out.println("found port " + port);
-					addPort(port);		
+					addPort(port);
 				}
 			};
 			
 			int endPort = startPort + numPortsPerScanner;
-			scanners[currentScanner] = new CrawlerTcpScanner(record.domain, startPort, endPort, cb);
+			scanners[currentScanner] = new CrawlerTcpScanner(host, startPort, endPort, cb);
 			
 			startPort += numPortsPerScanner + 1;
 			currentScanner++;

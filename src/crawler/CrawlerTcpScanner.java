@@ -13,7 +13,7 @@ public class CrawlerTcpScanner implements Runnable {
 		void onFoundPort(int port);
 	}
 	
-	public static  final int MAX_PORT = 1000; // should change to 65553.
+	public static  final int MAX_PORT = 500; // should change to 65553.
 	private static final int TIMOEOUT = 200;
 	
 	private final int startPort;
@@ -51,6 +51,7 @@ public class CrawlerTcpScanner implements Runnable {
 //				System.out.println(String.format("could not create socket, message: %s, port: %s", e.getMessage(), currentPort));
 			} finally {
 				currentPort++;
+				CrawlerManager.getInstance().addToBuffer();
 			}	
 		}
 			

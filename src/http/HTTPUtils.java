@@ -140,6 +140,14 @@ public class HTTPUtils {
 	}
 
 	public static boolean equalDomains(String domain1, String domain2) {
+		if (domain1.startsWith("www.")) {
+			domain1 = domain1.substring(4);
+		}
+		
+		if (domain2.startsWith("www.")) {
+			domain2 = domain2.substring(4);
+		}
+		
 		return domain1.contains(domain2) || domain2.contains(domain1);
 	}
 
